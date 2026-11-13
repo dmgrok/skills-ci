@@ -1,0 +1,52 @@
+name: Skill lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skills-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install skill-validator v1.8.0
+        run: |
+          set -euo pipefail
+          version=1.8.0
+          case "$(uname -m)" in
+            x86_64)
+              arch=amd64
+              sum=a9b4cb3436682ff8d55dd0d164376c8479d35cb58c0adc3e93170fbde8baa04f
+              ;;
+            aarch64|arm64)
+              arch=arm64
+              sum=87dc2f61df60f6c737b29e479a541ad72ee0f9c11422cdd76e7036a7e22e9fbc
+              ;;
+            *)
+              echo "unsupported architecture: $(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+          archive="skill-validator_${version}_linux_${arch}.tar.gz"
+          url="https://github.com/agent-ecosystem/skill-validator/releases/download/v${version}/${archive}"
+          curl -fsSL -o "$archive" "$url"
+          echo "${sum}  ${archive}" | sha256sum -c -
+          tar -xzf "$archive" skill-validator
+          install_dir="${HOME}/.local/bin"
+          mkdir -p "$install_dir"
+          install -m 0755 skill-validator "${install_dir}/skill-validator"
+          echo "$install_dir" >> "$GITHUB_PATH"
+          "${install_dir}/skill-validator" --version
+
+      - name: Lint skills
+        run: scripts/skills-lint.sh

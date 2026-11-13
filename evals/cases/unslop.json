@@ -1,0 +1,27 @@
+{
+  "artifact": "unslop",
+  "kind": "skill",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Edit this draft. Cut the AI tells and add a human voice"
+      },
+      {
+        "prompt": "Rewrite the writing so it sounds like a person. This must always apply"
+      },
+      {
+        "prompt": "Drafting a note. Remove the model voice before I send it"
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "owner": "html-email-report"
+      },
+      {
+        "prompt": "Turn these research notes and the claim ledger into a weekly brief a technical leader can trust and act on",
+        "owner": "research-brief-writing"
+      }
+    ]
+  }
+}

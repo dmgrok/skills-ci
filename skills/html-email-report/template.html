@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{{REPORT_TITLE}}</title>
+<!--
+  Gmail-safe report template. Rules:
+  - All styles inline. No head style block, no scripts, no data: images.
+  - Font family is set once on the content cell and inherited.
+  - Palette: paper #f5f5f5, card #ffffff, ink #2d3142, muted #4f5d75, soft #5a6580,
+    accent #bf4520 (one or two uses per section), link #2e5aa8, rule #d9dbe0.
+  - Evidence chips: Supported #e5f0e7/#1e5631, Corroborated #e3ecf7/#1f4e8c,
+    Provisional #fbf0dc/#734600, Disputed #f9e2dc/#9a2a12, Unverified #ececec/#3d4250,
+    Analysis #eeeaf4/#4b3a6b.
+  - Keep the finished HTML under about 90 KB. Replace every {{PLACEHOLDER}}; delete unused blocks.
+-->
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f5f5f5">{{PREHEADER_ONE_SENTENCE}}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;background:#fafafa;border:1px solid #d9dbe0"><tr>
+<td style="font-family:Arial,Helvetica,sans-serif;color:#2d3142;padding:24px 24px 20px 24px">
+
+<!-- Header: kicker, headline sentence, opening paragraph -->
+<p style="font-size:13px;line-height:18px;color:#5a6580;margin:0 0 6px 0">{{REPORT_TYPE}} &middot; {{DATE}}</p>
+<h1 style="font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:34px;font-weight:normal;color:#2d3142;margin:0 0 12px 0">{{CONCLUSION_AS_A_SENTENCE}}</h1>
+<p style="font-size:15px;line-height:23px;color:#2d3142;margin:0 0 12px 0">{{OPENING_PARAGRAPH_WHAT_CHANGED_WHY_IT_MATTERS_HOW_SURE}}</p>
+<p style="font-size:13px;line-height:19px;color:#5a6580;margin:0 0 12px 0">Coverage: {{WINDOW_WITH_TIMEZONE}}. {{ACCESS_GAPS}}</p>
+
+<!-- Summary block: takeaways and the decision -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px 0"><tr>
+<td style="background:#ffffff;border:1px solid #d9dbe0;border-top:4px solid #bf4520;padding:16px 18px">
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:25px;margin:0 0 6px 0">{{N}} takeaways</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td valign="top" width="28" style="font-size:15px;line-height:22px;color:#bf4520;font-weight:bold;padding:6px 0">1</td>
+<td valign="top" style="font-size:15px;line-height:22px;padding:6px 0">{{TAKEAWAY_HEADLINE}} <span style="color:#4f5d75">{{ONE_SENTENCE_DETAIL}}</span> <span style="display:inline-block;font-size:12px;line-height:16px;padding:1px 6px;border-radius:3px;background:#fbf0dc;color:#734600">Provisional</span></td></tr>
+<!-- repeat the row for takeaways 2 to 5 -->
+</table>
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:25px;margin:16px 0 6px 0">The one decision</p>
+<p style="font-size:15px;line-height:23px;margin:0">{{DECISION_WITH_THRESHOLD}}</p>
+</td></tr></table>
+
+<!-- Section heading -->
+<h2 style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:28px;font-weight:normal;color:#2d3142;margin:28px 0 10px 0">At a glance</h2>
+
+<!-- Data table: three columns at most -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:6px 0 14px 0">
+<tr>
+<th align="left" width="34%" style="font-size:13px;line-height:18px;color:#4f5d75;padding:6px 8px;border-bottom:2px solid #2d3142;text-align:left">Topic</th>
+<th align="left" width="36%" style="font-size:13px;line-height:18px;color:#4f5d75;padding:6px 8px;border-bottom:2px solid #2d3142;text-align:left">What shifted</th>
+<th align="left" width="30%" style="font-size:13px;line-height:18px;color:#4f5d75;padding:6px 8px;border-bottom:2px solid #2d3142;text-align:left">So what</th>
+</tr>
+<tr>
+<td valign="top" style="font-size:14px;line-height:20px;padding:8px;border-bottom:1px solid #d9dbe0"><b>{{TOPIC}}</b><br><span style="display:inline-block;font-size:12px;line-height:16px;padding:1px 6px;border-radius:3px;background:#e5f0e7;color:#1e5631">Supported by primary evidence</span><br><span style="color:#5a6580;font-size:13px">{{N}} independent chains</span></td>
+<td valign="top" style="font-size:14px;line-height:20px;padding:8px;border-bottom:1px solid #d9dbe0">{{WHAT_SHIFTED}}</td>
+<td valign="top" style="font-size:14px;line-height:20px;padding:8px;border-bottom:1px solid #d9dbe0">{{SO_WHAT}}</td>
+</tr>
+</table>
+
+<!-- Topic card: repeat per topic, same order of sub-sections -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0"><tr>
+<td style="background:#ffffff;border:1px solid #d9dbe0;border-left:4px solid #2d3142;padding:16px 18px">
+<h3 style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:25px;font-weight:normal;margin:0 0 6px 0">{{NUMBER}}. {{TOPIC}}</h3>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">How it works</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{ONE_EVERYDAY_ANALOGY_THEN_MECHANISM}}</p>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">The challenge it helps solve</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{REAL_PROBLEM}}</p>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">What is new, and the limits of the evidence</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{FIGURES_WITH_SCOPE}} <span style="display:inline-block;font-size:12px;line-height:16px;padding:1px 6px;border-radius:3px;background:#fbf0dc;color:#734600">Provisional</span></p>
+<p style="font-size:13px;line-height:19px;color:#5a6580;margin:6px 0 12px 0">Sources: <a href="{{URL}}" style="color:#2e5aa8;text-decoration:underline">{{SOURCE_NAME_AND_DATE}}</a></p>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">Best counterargument</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{STRONGEST_OBJECTION_WITH_SOURCE}}</p>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">What would change my mind</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{SPECIFIC_RESULT_THAT_REVERSES_IT}}</p>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">For an engineering leader</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{LEADER_IMPLICATION}}</p>
+<p style="font-size:13px;line-height:18px;font-weight:bold;color:#4f5d75;margin:14px 0 4px 0">For a buyer or founder</p>
+<p style="font-size:15px;line-height:23px;margin:0 0 12px 0">{{BUYER_IMPLICATION_WITH_REGIONAL_ANGLE}}</p>
+<p style="font-size:15px;line-height:23px;margin:14px 0 0 0;padding:10px 12px;background:#f5f5f5;border-left:3px solid #4f5d75"><span style="color:#4f5d75;font-weight:bold">One action:</span> {{ACTION_OR_REASON_TO_WAIT}}</p>
+</td></tr></table>
+
+<!-- CID image figure (verify Content-ID in the raw draft before sending) -->
+<img src="cid:{{FILENAME}}.png" width="592" alt="{{ALT_TEXT_STATING_THE_FINDING}}" style="display:block;width:100%;max-width:592px;height:auto;border:1px solid #d9dbe0;margin:8px 0 12px 0">
+
+<!-- HTML-native bar figure: bar width is the value as a percent of the largest value -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 14px 0"><tr>
+<td style="background:#f5f5f5;border:1px solid #d9dbe0;padding:12px 14px">
+<p style="font-size:14px;line-height:20px;font-weight:bold;margin:4px 0 8px 0">{{FIGURE_MESSAGE_AS_A_SENTENCE}}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td style="font-size:13px;line-height:17px;padding:4px 0 2px 0">{{BAR_LABEL}}: <b>{{VALUE}}</b></td></tr>
+<tr><td style="padding:0 0 4px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="{{PCT}}%" style="background:#2e5aa8;height:14px;font-size:0;line-height:0">&nbsp;</td><td width="{{100_MINUS_PCT}}%" style="font-size:0;line-height:0">&nbsp;</td>
+</tr></table></td></tr>
+</table>
+<p style="font-size:12px;line-height:17px;color:#5a6580;margin:8px 0 0 0">Source: {{SOURCE_DATE_AND_METHOD_NOTE}}</p>
+</td></tr></table>
+
+<!-- Formula box -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 12px 0"><tr>
+<td align="center" style="background:#ffffff;border:2px solid #2d3142;padding:18px 12px">
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:28px;margin:0">{{METRIC_NAME}} =</p>
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:28px;margin:4px 0 0 0;padding-bottom:6px;border-bottom:1px solid #2d3142">{{NUMERATOR}}</p>
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:28px;margin:6px 0 0 0">{{DENOMINATOR}}</p>
+</td></tr></table>
+
+<!-- Closing card: the question or decision, then limits -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0"><tr>
+<td style="background:#ffffff;border:1px solid #d9dbe0;border-left:4px solid #bf4520;padding:16px 18px">
+<p style="font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:25px;margin:0 0 6px 0">The question for you</p>
+<p style="font-size:15px;line-height:23px;margin:0">{{CLOSING_QUESTION_OR_DECISION}}</p>
+</td></tr></table>
+<p style="font-size:13px;line-height:19px;color:#5a6580;margin:0 0 12px 0">Material limits: {{LIMITATIONS}}</p>
+
+</td></tr></table>
+<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:17px;color:#5a6580;margin:12px 0 0 0">{{FOOTER}}</p>
+</td></tr></table>
+</body>
+</html>

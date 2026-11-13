@@ -1,0 +1,27 @@
+{
+  "artifact": "research-brief-writing",
+  "kind": "skill",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Turn these research notes and the claim ledger into a weekly brief a technical leader can trust and act on"
+      },
+      {
+        "prompt": "Write today's daily brief from the claim ledger"
+      },
+      {
+        "prompt": "The busy technical leader needs a brief he can understand and act on"
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "owner": "html-email-report"
+      },
+      {
+        "prompt": "Edit this draft. Cut the AI tells and add a human voice",
+        "owner": "unslop"
+      }
+    ]
+  }
+}

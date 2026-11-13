@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-13T20:37:18.427Z",
+  "rank1Rate": 1,
+  "artifacts": {
+    "skill:html-email-report": {
+      "hash": "2f82805d01a736973805c6a2",
+      "kind": "skill"
+    },
+    "skill:research-brief-writing": {
+      "hash": "d1c46a82e16def413365e9c5",
+      "kind": "skill"
+    },
+    "skill:ui-design": {
+      "hash": "0da22a354a4212a40737a205",
+      "kind": "skill"
+    },
+    "skill:unslop": {
+      "hash": "da3b0b970b895406bdcda3fb",
+      "kind": "skill"
+    }
+  },
+  "triggers": {
+    "skill:html-email-report": {
+      "2e2944026676b048": {
+        "type": "positive",
+        "text": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "rank": 1,
+        "passed": true
+      },
+      "5c59e530646f268b": {
+        "type": "positive",
+        "text": "HTML email report with figures for Gmail on desktop and mobile",
+        "rank": 1,
+        "passed": true
+      },
+      "663bed9cd19e681a": {
+        "type": "positive",
+        "text": "The brief must go out as an HTML email, not a slide deck",
+        "rank": 1,
+        "passed": true
+      },
+      "46a6163ad6983078": {
+        "type": "negative",
+        "text": "Turn these research notes and the claim ledger into a weekly brief a technical leader can trust and act on",
+        "rank": null,
+        "passed": true
+      },
+      "6d939e550de96b9d": {
+        "type": "negative",
+        "text": "Edit this draft. Cut the AI tells and add a human voice",
+        "rank": null,
+        "passed": true
+      }
+    },
+    "skill:research-brief-writing": {
+      "2ec39e0de6168206": {
+        "type": "positive",
+        "text": "Turn these research notes and the claim ledger into a weekly brief a technical leader can trust and act on",
+        "rank": 1,
+        "passed": true
+      },
+      "94ce8eefd2feb5e2": {
+        "type": "positive",
+        "text": "Write today's daily brief from the claim ledger",
+        "rank": 1,
+        "passed": true
+      },
+      "915a7008aeb06d4f": {
+        "type": "positive",
+        "text": "The busy technical leader needs a brief he can understand and act on",
+        "rank": 1,
+        "passed": true
+      },
+      "a7eed5332fffceda": {
+        "type": "negative",
+        "text": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "rank": null,
+        "passed": true
+      },
+      "6d939e550de96b9d": {
+        "type": "negative",
+        "text": "Edit this draft. Cut the AI tells and add a human voice",
+        "rank": null,
+        "passed": true
+      }
+    },
+    "skill:ui-design": {
+      "1f3329febecafcfb": {
+        "type": "positive",
+        "text": "Make this mobile UI better, using real product screens",
+        "rank": 1,
+        "passed": true
+      },
+      "c39700d6ceb95e7a": {
+        "type": "positive",
+        "text": "Redesign the web interface: responsive layout and the design system",
+        "rank": 1,
+        "passed": true
+      },
+      "6b0c3642340ff507": {
+        "type": "positive",
+        "text": "Critique this iOS screen and polish the frontend",
+        "rank": 1,
+        "passed": true
+      },
+      "a7eed5332fffceda": {
+        "type": "negative",
+        "text": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "rank": null,
+        "passed": true
+      },
+      "6d939e550de96b9d": {
+        "type": "negative",
+        "text": "Edit this draft. Cut the AI tells and add a human voice",
+        "rank": null,
+        "passed": true
+      }
+    },
+    "skill:unslop": {
+      "9f515bfff2ef5a7e": {
+        "type": "positive",
+        "text": "Edit this draft. Cut the AI tells and add a human voice",
+        "rank": 1,
+        "passed": true
+      },
+      "040120858033c336": {
+        "type": "positive",
+        "text": "Rewrite the writing so it sounds like a person. This must always apply",
+        "rank": 1,
+        "passed": true
+      },
+      "3b643c70d3b534e5": {
+        "type": "positive",
+        "text": "Drafting a note. Remove the model voice before I send it",
+        "rank": 1,
+        "passed": true
+      },
+      "a7eed5332fffceda": {
+        "type": "negative",
+        "text": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "rank": null,
+        "passed": true
+      },
+      "46a6163ad6983078": {
+        "type": "negative",
+        "text": "Turn these research notes and the claim ledger into a weekly brief a technical leader can trust and act on",
+        "rank": null,
+        "passed": true
+      }
+    }
+  },
+  "collisions": []
+}

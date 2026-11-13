@@ -1,0 +1,82 @@
+name: Skill behavioural evals
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Mondays at 06:00 UTC.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  behavioural:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Require ANTHROPIC_API_KEY
+        id: gate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::notice title=Behavioural evals skipped::ANTHROPIC_API_KEY is not set on this repository. Add that repository secret to run the weekly behavioural evals."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Select skills with behavioural cases
+        id: cases
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          names = []
+          root = Path("evals/cases")
+          if root.is_dir():
+              for path in sorted(root.glob("*.json")):
+                  data = json.loads(path.read_text())
+                  if data.get("evals"):
+                      names.append(path.stem)
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              if names:
+                  handle.write("run=true\n")
+                  handle.write("names=" + ",".join(names) + "\n")
+              else:
+                  handle.write("run=false\n")
+          if not names:
+              print(
+                  "::notice title=No behavioural cases::"
+                  "ANTHROPIC_API_KEY is set, and no file under evals/cases has an evals array yet. "
+                  "Add expectations to a case file to include that skill in this run."
+              )
+          PY
+
+      - name: Install Claude Code 2.1.323
+        if: steps.cases.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          prefix="${HOME}/.local"
+          npm install --prefix "$prefix" @anthropic-ai/claude-code@2.1.323
+          echo "${prefix}/bin" >> "$GITHUB_PATH"
+          "${prefix}/bin/claude" --version
+
+      - name: Run behavioural evals
+        if: steps.cases.outputs.run == 'true'
+        uses: ahnafyy/skills-evals@ef618aabbbd4c03cd7ccc44916f91f320eb389ea # v0.2.0
+        with:
+          root: .
+          behavioral: ${{ steps.cases.outputs.names }}
+          adapter: claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
