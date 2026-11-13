@@ -80,7 +80,7 @@ The snapshot is `.skills-evals/baseline.json`. Grading output under `.skills-eva
 
 `skills-evals.config.json` sets `minEvals` to 0 so a case file made of trigger prompts is complete for pull-request CI.
 
-A passing eval run can still print warnings. `ui-design` has no "Use when" clause. `html-email-report` and `research-brief-writing` do say "Use when", in a folded YAML block. skills-evals 0.2.0 keeps the fold marker and drops the folded lines, so it warns there too. The skill text stays as it is.
+A passing eval run can still print warnings. `ui-design` has no "Use when" clause. `html-email-report`, `research-brief-writing`, and `bs-me-not` do say "Use when", in a folded YAML block. skills-evals 0.2.0 keeps the fold marker and drops the folded lines, so it warns there too. The skill text stays as it is.
 
 ## Opt into the weekly behavioural run
 

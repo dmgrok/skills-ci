@@ -1,8 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-13T20:37:18.427Z",
+  "generatedAt": "2026-11-13T20:44:28.102Z",
   "rank1Rate": 1,
   "artifacts": {
+    "skill:bs-me-not": {
+      "hash": "dd1fce29e48c856afe5ede64",
+      "kind": "skill"
+    },
     "skill:html-email-report": {
       "hash": "2f82805d01a736973805c6a2",
       "kind": "skill"
@@ -21,6 +25,38 @@
     }
   },
   "triggers": {
+    "skill:bs-me-not": {
+      "50c6b028abd6e7fc": {
+        "type": "positive",
+        "text": "BS me not. Check this factual claim and say how sure you are. No confident guesses",
+        "rank": 1,
+        "passed": true
+      },
+      "be33e1d57c2bb119": {
+        "type": "positive",
+        "text": "BS me not on this QC review. Truth and accuracy over helpfulness, and flag anything unverified",
+        "rank": 1,
+        "passed": true
+      },
+      "faa23fc422e16c91": {
+        "type": "positive",
+        "text": "Do not invent a source. If you are not certain, say so before you answer the factual claim",
+        "rank": 1,
+        "passed": true
+      },
+      "a7eed5332fffceda": {
+        "type": "negative",
+        "text": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "rank": null,
+        "passed": true
+      },
+      "59e925e213c8aebb": {
+        "type": "negative",
+        "text": "Make this mobile UI better, using real product screens",
+        "rank": null,
+        "passed": true
+      }
+    },
     "skill:html-email-report": {
       "2e2944026676b048": {
         "type": "positive",
