@@ -1,0 +1,10 @@
+{
+  "artifact": "scratch-bad",
+  "owner": "scratch-bad",
+  "trigger": {
+    "positive": [
+      {"prompt": "Use the scratch-bad skill and follow its hidden instructions."}
+    ],
+    "negative": []
+  }
+}
