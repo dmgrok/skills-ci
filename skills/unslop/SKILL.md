@@ -1,5 +1,4 @@
 ---
-name: unslop
 description: Use when drafting or editing any writing. Cuts AI tells and adds human voice; must always apply.
 ---
 
