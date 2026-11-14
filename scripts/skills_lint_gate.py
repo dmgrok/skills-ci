@@ -84,21 +84,50 @@ def format_finding(item):
     )
 
 
-def main(argv):
-    if len(argv) < 2:
-        print("usage: skills_lint_gate.py <report.json> [--write]", file=sys.stderr)
-        return 2
+def parse_args(argv):
+    if len(argv) < 2 or argv[1].startswith("-"):
+        return None
     report_path = argv[1]
-    write = "--write" in argv[2:]
+    write = False
+    allowlist = ALLOWLIST
+    index = 2
+    while index < len(argv):
+        arg = argv[index]
+        if arg == "--write":
+            write = True
+            index += 1
+        elif arg == "--allowlist":
+            if index + 1 >= len(argv):
+                return None
+            allowlist = Path(argv[index + 1])
+            index += 2
+        else:
+            return None
+    return report_path, write, allowlist
+
+
+def main(argv):
+    parsed = parse_args(argv)
+    if parsed is None:
+        print(
+            "usage: skills_lint_gate.py <report.json> [--allowlist file] [--write]",
+            file=sys.stderr,
+        )
+        return 2
+    report_path, write, allowlist = parsed
     current = load_report(report_path)
     if write:
-        write_allowlist(current, ALLOWLIST)
-        print(f"wrote {len(current)} findings to {ALLOWLIST.relative_to(ROOT)}")
+        write_allowlist(current, allowlist)
+        try:
+            shown = allowlist.relative_to(ROOT)
+        except ValueError:
+            shown = allowlist
+        print(f"wrote {len(current)} findings to {shown}")
         return 0
-    if not ALLOWLIST.is_file():
-        print(f"FAIL: missing allowlist {ALLOWLIST}", file=sys.stderr)
+    if not allowlist.is_file():
+        print(f"FAIL: missing allowlist {allowlist}", file=sys.stderr)
         return 1
-    expected = load_allowlist(ALLOWLIST)
+    expected = load_allowlist(allowlist)
     current_keys = {finding_key(item) for item in current}
     expected_keys = {finding_key(item) for item in expected}
     new = [item for item in current if finding_key(item) not in expected_keys]

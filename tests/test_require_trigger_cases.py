@@ -56,6 +56,20 @@ def test_directory_without_skill_md_is_ignored(tmp_path):
     assert triggers.missing_trigger_cases(tmp_path) == []
 
 
+def test_skills_dir_limits_which_folders_are_required(tmp_path):
+    write_skill(tmp_path, "alpha")
+    other = tmp_path / "other" / "beta"
+    other.mkdir(parents=True)
+    (other / "SKILL.md").write_text("---\nname: beta\ndescription: Use when testing.\n---\n")
+    case_dir = tmp_path / "evals" / "cases"
+    case_dir.mkdir(parents=True)
+    (case_dir / "beta.json").write_text(
+        json.dumps({"trigger": {"positive": [{"prompt": "Run beta"}]}})
+    )
+    assert triggers.missing_trigger_cases(tmp_path, "other") == []
+    assert triggers.main(["require_trigger_cases.py", str(tmp_path), "--skills-dir", "other"]) == 0
+
+
 def test_shipped_skills_each_have_a_trigger():
     assert triggers.missing_trigger_cases(ROOT) == []
     assert triggers.MIN_POSITIVE_TRIGGERS == 1

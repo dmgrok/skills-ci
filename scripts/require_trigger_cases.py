@@ -24,8 +24,8 @@ def positive_prompts(data):
     return prompts
 
 
-def missing_trigger_cases(root):
-    skills_dir = root / "skills"
+def missing_trigger_cases(root, skills_dirname="skills"):
+    skills_dir = root / skills_dirname
     problems = []
     if not skills_dir.is_dir():
         return [f"missing skills directory: {skills_dir}"]
@@ -51,18 +51,38 @@ def missing_trigger_cases(root):
 
 
 def main(argv):
-    root = Path(argv[1]).resolve() if len(argv) > 1 else ROOT
-    problems = missing_trigger_cases(root)
+    root = ROOT
+    skills_dirname = "skills"
+    positionals = []
+    args = argv[1:]
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg == "--skills-dir":
+            if index + 1 >= len(args):
+                print("usage: require_trigger_cases.py [root] [--skills-dir dir]", file=sys.stderr)
+                return 2
+            skills_dirname = args[index + 1]
+            index += 2
+        else:
+            positionals.append(arg)
+            index += 1
+    if positionals:
+        root = Path(positionals[0]).resolve()
+    problems = missing_trigger_cases(root, skills_dirname)
     if problems:
         print(f"FAIL: every skill needs at least {MIN_POSITIVE_TRIGGERS} positive trigger prompt")
         for problem in problems:
             print("FAIL: " + problem)
         return 1
-    skills = [
-        p.name
-        for p in sorted((root / "skills").iterdir())
-        if p.is_dir() and (p / "SKILL.md").is_file()
-    ]
+    skills_dir = root / skills_dirname
+    skills = []
+    if skills_dir.is_dir():
+        skills = [
+            p.name
+            for p in sorted(skills_dir.iterdir())
+            if p.is_dir() and (p / "SKILL.md").is_file()
+        ]
     print(
         f"PASS: {len(skills)} skill(s), each with at least "
         f"{MIN_POSITIVE_TRIGGERS} positive trigger prompt"

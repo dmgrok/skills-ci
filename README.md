@@ -1,55 +1,63 @@
 # skills-ci
 
-A small, reusable CI pipeline for [Agent Skills](https://agentskills.io): folders whose instructions live in `SKILL.md`.
+CI for [Agent Skills](https://agentskills.io) that proves it catches a broken skill.
 
-Three checks run on every pull request and every push to `main`: lint, trigger evals, and tests. None of them calls a model or reads a secret. A fourth workflow runs weekly and does nothing unless you later add a repository secret and behavioural cases.
+[![Skill CI](https://github.com/dmgrok/skills-ci/actions/workflows/skills-lint.yml/badge.svg?branch=main)](https://github.com/dmgrok/skills-ci/actions/workflows/skills-lint.yml)
+[![Skill tests](https://github.com/dmgrok/skills-ci/actions/workflows/skills-tests.yml/badge.svg?branch=main)](https://github.com/dmgrok/skills-ci/actions/workflows/skills-tests.yml)
+[![License: MIT, ui-design Apache-2.0](https://img.shields.io/badge/license-MIT_(root),_Apache--2.0_(ui--design)-blue)](LICENSE)
 
-Skills in this repository live at `skills/<name>/`. There are no tool-specific symlink copies.
+A CI run that only ever goes green proves nothing. This repository ships five deliberately broken skills. Each one must fail with its expected error text, and one valid skill must pass.
 
-## Pipeline
+## What it catches
 
-```
-pull request, or push to main
-        |
-        +-- Skill lint
-        |     install skill-validator v1.8.0 (checksum pinned)
-        |     strict check of skills/
-        |     fail unless the finding list matches scripts/skills-lint-allowlist.json
-        |
-        +-- Skill evals
-        |     every skill under skills/ must have a positive trigger prompt
-        |     skills-evals v0.2.0, tiers 1 and 2 only
-        |     structure, description checks, and trigger routing
-        |     compare the result with .skills-evals/baseline.json
-        |
-        +-- Skill tests
-              pytest for the lint gate and the HTML email checker
-              negative fixtures must fail with the expected error text
-
-Mondays 06:00 UTC, or a manual run
-        |
-        +-- Behavioural evals
-              if ANTHROPIC_API_KEY is unset, print a notice and exit 0
-              if it is set, run only case files that contain an evals array
-              this repository ships neither the secret nor any evals array
-```
-
-| Workflow | When | What it does |
+| Problem | Caught by lint | Caught by evals |
 | --- | --- | --- |
-| `.github/workflows/skills-lint.yml` | pull request, push to `main` | `skill-validator` v1.8.0, strict, no model |
-| `.github/workflows/skills-evals.yml` | pull request, push to `main` | `skills-evals` v0.2.0, tiers 1 and 2, no model and no secrets. Fails if a skill has no positive trigger prompt |
-| `.github/workflows/skills-tests.yml` | pull request, push to `main` | pytest, and negative fixtures that must fail with a specific error |
-| `.github/workflows/skills-behavioral.yml` | Mondays 06:00 UTC, and manual dispatch | behavioural tier, only when `ANTHROPIC_API_KEY` is set |
+| Missing frontmatter (`missing-frontmatter`) | yes | yes |
+| Missing name (`missing-name`) | yes | yes |
+| Description longer than 1024 characters (`description-too-long`) | yes | yes |
+| External link returns HTTP 404 (`broken-link`) | yes | no |
+| Link to a file that is not in the skill (`missing-referenced-file`) | yes | no |
+| Valid skill (`good-skill`) | passes | passes |
 
-Every workflow sets `permissions: contents: read`. Third-party actions are pinned to commit SHAs.
+The fixtures are under `tests/fixtures/`, outside `skills/`. Expected strings are in `tests/fixtures/expectations.json`.
 
-The lint job still reports one accepted warning: `ui-design`'s description reads as a keyword list. That line is in `scripts/skills-lint-allowlist.json`. A finding that is not on the list fails the job. An allowlist line the validator stops reporting also fails the job.
+## Use it in your repo in 3 steps
 
-Trigger evals pass with four warnings. `html-email-report`, `research-brief-writing`, and `bs-me-not` say "Use when" inside a folded YAML block, which skills-evals 0.2.0 does not unfold. `ui-design` has no "Use when" clause. Warnings do not fail the job. Rewriting those descriptions is out of scope: the copied skill files stay as they are, and `bs-me-not` keeps that fold.
+1. Put each skill at `skills/<name>/SKILL.md`.
+2. Add `.github/workflows/skills-ci.yml`:
 
-Details, local commands, and how to add a case are in [docs/skills-ci.md](docs/skills-ci.md).
+```yaml
+name: Skill CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  skills:
+    uses: dmgrok/skills-ci/.github/workflows/skills-ci.yml@main
+```
 
-## Skills in this repo
+3. Optional: add `evals/cases/<name>.json` with trigger prompts. Until that directory exists, the trigger-case check is skipped.
+
+`@main` follows the default branch. A tag or a commit SHA is safer. Use `@v1` after that tag exists. This repository does not publish it yet. Copying the scripts by hand is the [manual setup](docs/skills-ci.md#manual-setup).
+
+## What runs
+
+On every pull request, and on every push to `main`. No model, and no secrets.
+
+- **Skill lint.** A strict check of `skills/`.
+- **Skill evals.** Structure checks and trigger routing.
+- **Skill tests.** In this repository: pytest, and the fixture check in the table above. Callers do not run that job.
+
+The optional behavioural tier is off by default. A proposal for running it later with an open-weights model is in [docs/skills-ci.md](docs/skills-ci.md#proposal-run-the-behavioural-tier-on-an-open-model).
+
+## Open source
+
+Every tool this CI installs is under an OSI-approved license. The table is in [docs/skills-ci.md](docs/skills-ci.md#licenses-of-the-ci-tools).
+
+## Skills included
 
 | Skill | What it is for |
 | --- | --- |
@@ -60,18 +68,6 @@ Details, local commands, and how to add a case are in [docs/skills-ci.md](docs/s
 | `ui-design` | Design or improve a web or native interface. Apache-2.0 skill; see its `LICENSE` and `NOTICE` |
 
 `bs-me-not`, `html-email-report`, `research-brief-writing`, and `unslop` are covered by the MIT [LICENSE](LICENSE) at the repository root. `ui-design` keeps its own Apache-2.0 license and third-party notices. The root MIT license does not replace that skill's license.
-
-## Reuse this pipeline
-
-1. Copy `.github/workflows/skills-lint.yml`, `.github/workflows/skills-evals.yml`, `.github/workflows/skills-tests.yml`, and `.github/workflows/skills-behavioral.yml`.
-2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
-3. Put each skill at `skills/<name>/SKILL.md`. Keep the workflow permission at `contents: read`.
-4. Keep the pinned action SHAs and the skill-validator checksums. Do not switch them to a floating tag or `latest`.
-5. Add `evals/cases/<name>.json` with three prompts that should route to the skill and two that should route to another skill in the same repo. See the doc for the shape.
-6. Run the linter and `npx --yes skills-evals@0.2.0 run --update-baseline`. Commit `.skills-evals/baseline.json`.
-7. Leave `ANTHROPIC_API_KEY` unset unless you intentionally want the weekly behavioural job to call a model. Do not commit the key.
-
-If your skills use a different layout, change the flags in `scripts/skills-lint.sh` and say why in your own doc. This repo allows companion files beside `SKILL.md`, allows `agents/` and `reference/` (used by `ui-design`), and skips orphan checks so license and provenance files are not treated as forgotten references.
 
 ## Credits
 
