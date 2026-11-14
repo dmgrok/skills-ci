@@ -1,0 +1,121 @@
+name: Skill CI
+
+on:
+  workflow_call:
+    inputs:
+      skills-dir:
+        description: Directory of skill folders, relative to the caller repository root.
+        required: false
+        type: string
+        default: skills
+      allowlist:
+        description: >-
+          Allowlist of accepted skill-validator findings, relative to the
+          caller repository. Empty means any finding fails.
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout caller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Scripts come from this repository at the ref the caller pinned.
+      # A dot directory stays out of the skills-evals scan.
+      - name: Checkout skills-ci scripts
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .skills-ci
+
+      - name: Install skill-validator v1.8.0
+        run: |
+          set -euo pipefail
+          version=1.8.0
+          case "$(uname -m)" in
+            x86_64)
+              arch=amd64
+              sum=a9b4cb3436682ff8d55dd0d164376c8479d35cb58c0adc3e93170fbde8baa04f
+              ;;
+            aarch64|arm64)
+              arch=arm64
+              sum=87dc2f61df60f6c737b29e479a541ad72ee0f9c11422cdd76e7036a7e22e9fbc
+              ;;
+            *)
+              echo "unsupported architecture: $(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+          archive="skill-validator_${version}_linux_${arch}.tar.gz"
+          url="https://github.com/agent-ecosystem/skill-validator/releases/download/v${version}/${archive}"
+          curl -fsSL -o "$archive" "$url"
+          echo "${sum}  ${archive}" | sha256sum -c -
+          tar -xzf "$archive" skill-validator
+          install_dir="${HOME}/.local/bin"
+          mkdir -p "$install_dir"
+          install -m 0755 skill-validator "${install_dir}/skill-validator"
+          echo "$install_dir" >> "$GITHUB_PATH"
+          "${install_dir}/skill-validator" --version
+
+      - name: Lint skills
+        env:
+          SKILLS_DIR: ${{ inputs.skills-dir }}
+          ALLOWLIST: ${{ inputs.allowlist }}
+        run: |
+          set -euo pipefail
+          args=(--root "$GITHUB_WORKSPACE" --skills-dir "$SKILLS_DIR")
+          if [ -n "$ALLOWLIST" ]; then
+            args+=(--allowlist "$GITHUB_WORKSPACE/$ALLOWLIST")
+          else
+            empty="${RUNNER_TEMP}/empty-allowlist.json"
+            printf '%s\n' '{"findings":[]}' > "$empty"
+            args+=(--allowlist "$empty")
+          fi
+          "$GITHUB_WORKSPACE/.skills-ci/scripts/skills-lint.sh" "${args[@]}"
+
+  evals:
+    name: Trigger routing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout caller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Checkout skills-ci scripts
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .skills-ci
+
+      # Missing evals/cases is allowed. Once that directory exists, every
+      # skill in skills-dir needs a positive trigger prompt.
+      - name: Require a trigger case when cases exist
+        env:
+          SKILLS_DIR: ${{ inputs.skills-dir }}
+        run: |
+          set -euo pipefail
+          if [ ! -d "$SKILLS_DIR" ]; then
+            echo "skills directory not found: $SKILLS_DIR" >&2
+            exit 1
+          fi
+          if [ -d evals/cases ]; then
+            python3 "$GITHUB_WORKSPACE/.skills-ci/scripts/require_trigger_cases.py" \
+              "$GITHUB_WORKSPACE" --skills-dir "$SKILLS_DIR"
+          else
+            echo "No evals/cases directory. Trigger prompts are optional until you add one."
+          fi
+
+      # Tiers 1 and 2 only. The action skips behavioural evals when
+      # behavioral is empty. No model, no secrets.
+      - name: Run skills-evals
+        uses: ahnafyy/skills-evals@ef618aabbbd4c03cd7ccc44916f91f320eb389ea # v0.2.0
+        with:
+          root: .

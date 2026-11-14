@@ -186,6 +186,32 @@ def test_write_replaces_allowlist(tmp_path, monkeypatch, capsys):
     assert "wrote 1 findings" in capsys.readouterr().out
 
 
+def test_allowlist_flag_overrides_the_default(tmp_path, monkeypatch, capsys):
+    report = tmp_path / "report.json"
+    write_report(
+        report,
+        [
+            skill(
+                "demo",
+                [
+                    {
+                        "level": "error",
+                        "category": "Frontmatter",
+                        "file": "SKILL.md",
+                        "message": "name is required",
+                    }
+                ],
+                skill_dir="skills/demo",
+            )
+        ],
+    )
+    empty = tmp_path / "empty.json"
+    empty.write_text('{"findings": []}')
+    monkeypatch.setattr(gate, "ALLOWLIST", tmp_path / "unused.json")
+    assert gate.main(["skills_lint_gate.py", str(report), "--allowlist", str(empty)]) == 1
+    assert "new finding" in capsys.readouterr().out
+
+
 def test_usage_error(capsys):
     assert gate.main(["skills_lint_gate.py"]) == 2
     assert "usage:" in capsys.readouterr().err

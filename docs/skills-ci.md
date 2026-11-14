@@ -1,17 +1,45 @@
 # Skill CI
 
-Canonical skills live in `skills/`. Lint points at that directory. The eval scan starts at the repository root and records each `SKILL.md` once. This repository has no plugin manifest, so CI does not validate marketplace JSON.
+Canonical skills live in `skills/`. Lint points at that directory. The eval scan starts at the repository root and records each `SKILL.md` once. This repository has no plugin manifest, so CI does not validate marketplace JSON. There are no tool-specific symlink copies of the skills.
 
 ## What runs
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| `.github/workflows/skills-lint.yml` | every pull request, and every push to `main` | `skill-validator` v1.8.0, strict, no model |
-| `.github/workflows/skills-evals.yml` | every pull request, and every push to `main` | `skills-evals` v0.2.0, structural checks and trigger routing, no model and no secrets. Also fails if a skill under `skills/` has no positive trigger prompt |
-| `.github/workflows/skills-tests.yml` | every pull request, and every push to `main` | pytest for the lint gate and the HTML email checker, plus negative fixtures that must fail with a specific error |
+| `.github/workflows/skills-ci.yml` | `workflow_call` from a caller | lint, trigger routing, and the trigger-case check. No model and no secrets. Checks out this repository's scripts at the called ref |
+| `.github/workflows/skills-lint.yml` | every pull request, and every push to `main` | calls `skills-ci.yml` on this repository, with `skills/` and `scripts/skills-lint-allowlist.json` |
+| `.github/workflows/skills-tests.yml` | every pull request, and every push to `main` | pytest for the lint gate and the HTML email checker, plus negative fixtures that must fail with a specific error. Not part of the reusable workflow |
 | `.github/workflows/skills-behavioral.yml` | Mondays at 06:00 UTC, and manual dispatch | behavioural tier, and only when `ANTHROPIC_API_KEY` is set |
 
-Workflow permissions are `permissions: contents: read`. Nothing in pull-request CI needs a secret.
+```
+pull request, or push to main
+        |
+        +-- Skill lint
+        |     install skill-validator v1.8.0 (checksum pinned)
+        |     strict check of skills/
+        |     fail unless the finding list matches scripts/skills-lint-allowlist.json
+        |
+        +-- Skill evals
+        |     every skill under skills/ must have a positive trigger prompt
+        |     skills-evals v0.2.0, tiers 1 and 2 only
+        |     structure, description checks, and trigger routing
+        |     compare the result with .skills-evals/baseline.json
+        |
+        +-- Skill tests
+              pytest for the lint gate and the HTML email checker
+              negative fixtures must fail with the expected error text
+
+Mondays 06:00 UTC, or a manual run
+        |
+        +-- Behavioural evals
+              if ANTHROPIC_API_KEY is unset, print a notice and exit 0
+              if it is set, run only case files that contain an evals array
+              this repository ships neither the secret nor any evals array
+```
+
+Lint and trigger routing in that picture run as the two jobs of the reusable workflow. This repository calls it from `.github/workflows/skills-lint.yml`.
+
+Every workflow sets `permissions: contents: read`. Third-party actions are pinned to commit SHAs. Nothing in pull-request CI needs a secret.
 
 The lint job downloads the v1.8.0 Linux release archive and checks its checksum. It runs:
 
@@ -98,7 +126,7 @@ The snapshot is `.skills-evals/baseline.json`. Grading output under `.skills-eva
 
 `skills-evals.config.json` sets `minEvals` to 0. In skills-evals 0.2.0 that number is the minimum count of behavioral evals in a case file (`evals[]`), and a shortfall is a warning, not an error. Raising it would ask for behavioral cases. This repository does not add those. The hard rule for trigger coverage is `scripts/require_trigger_cases.py`: every skill under `skills/` needs at least one positive trigger prompt, and the eval job fails when one is missing. The five skills already have three positive prompts and two negative prompts each, so no case file was added for this rule.
 
-A passing eval run can still print warnings. `ui-design` has no "Use when" clause. `html-email-report`, `research-brief-writing`, and `bs-me-not` do say "Use when", in a folded YAML block. skills-evals 0.2.0 keeps the fold marker and drops the folded lines, so it warns there too. The skill text stays as it is.
+A passing eval run can still print warnings. `ui-design` has no "Use when" clause. `html-email-report`, `research-brief-writing`, and `bs-me-not` do say "Use when", in a folded YAML block. skills-evals 0.2.0 keeps the fold marker and drops the folded lines, so it warns there too. Trigger evals pass with those four warnings. Warnings do not fail the job. Rewriting those descriptions is out of scope: the copied skill files stay as they are, and `bs-me-not` keeps that fold. The skill text stays as it is.
 
 ## Opt into the weekly behavioural run
 
@@ -134,9 +162,40 @@ Read from each project's own `LICENSE` file, or from the package metadata of the
 
 pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. The other three are the tools the lint and eval workflows already pin. The skills-evals npm package has no runtime dependencies.
 
-## Copy the workflows into another repo
+## Reusable workflow
 
-Copy the four workflow files, `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and this doc. Point skills at `skills/` or change the path in `scripts/skills-lint.sh` and the workflow comments together. Regenerate the allowlist only for findings you mean to keep:
+Callers add one workflow file. It uses `.github/workflows/skills-ci.yml` with `on: workflow_call`. The called jobs check out the caller, then check out this repository at `job.workflow_sha` into `.skills-ci` and run the scripts from there. Callers do not copy scripts.
+
+Inputs:
+
+- `skills-dir`, default `skills`. A directory of skill folders, relative to the caller root.
+- `allowlist`, default empty. A JSON allowlist relative to the caller root. Empty means any skill-validator finding fails. This repository passes `scripts/skills-lint-allowlist.json` because `ui-design` has one accepted warning.
+
+Permissions stay `contents: read`. Actions and the skill-validator archive stay pinned. The jobs do not read a secret and do not call a model. Negative fixtures and pytest stay in `.github/workflows/skills-tests.yml` and are not part of the reusable workflow.
+
+If `evals/cases/` is missing, the trigger-case check prints a notice and continues. If that directory exists, every skill under `skills-dir` needs at least one positive trigger prompt.
+
+This repository calls the workflow from `.github/workflows/skills-lint.yml` with a relative `uses:` path, so a pull request runs the workflow from that pull request.
+
+## Manual setup
+
+Use this when you cannot call a workflow in another repository. The normal path is the one-file caller in the README.
+
+Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and this doc. Point skills at `skills/` or change the path in `scripts/skills-lint.sh` and the workflow comments together.
+
+The same steps, in order:
+
+1. Copy `.github/workflows/skills-behavioral.yml` if you want the weekly job, and write a workflow that runs the commands below. `.github/workflows/skills-tests.yml` is the fixture and pytest job for this repository; copy it only if you want those tests.
+2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
+3. Put each skill at `skills/<name>/SKILL.md`. Keep the workflow permission at `contents: read`.
+4. Keep the pinned action SHAs and the skill-validator checksums. Do not switch them to a floating tag or `latest`.
+5. Add `evals/cases/<name>.json` with three prompts that should route to the skill and two that should route to another skill in the same repo. See [Add eval cases](#add-eval-cases) for the shape.
+6. Run the linter and `npx --yes skills-evals@0.2.0 run --update-baseline`. Commit `.skills-evals/baseline.json`.
+7. Leave `ANTHROPIC_API_KEY` unset unless you intentionally want the weekly behavioural job to call a model. Do not commit the key.
+
+If your skills use a different layout, change the flags in `scripts/skills-lint.sh` and say why in your own doc. This repo allows companion files beside `SKILL.md`, allows `agents/` and `reference/` (used by `ui-design`), and skips orphan checks so license and provenance files are not treated as forgotten references.
+
+Regenerate the allowlist only for findings you mean to keep:
 
 ```bash
 skill-validator check --strict --allow-flat-layouts --allow-dirs=agents,reference --skip-orphans -o json skills/ > /tmp/lint.json
