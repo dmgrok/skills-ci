@@ -1,0 +1,27 @@
+{
+  "artifact": "html-email-report",
+  "kind": "skill",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative"
+      },
+      {
+        "prompt": "HTML email report with figures for Gmail on desktop and mobile"
+      },
+      {
+        "prompt": "The brief must go out as an HTML email, not a slide deck"
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Turn these research notes and the claim ledger into a weekly brief a technical leader can trust and act on",
+        "owner": "research-brief-writing"
+      },
+      {
+        "prompt": "Edit this draft. Cut the AI tells and add a human voice",
+        "owner": "unslop"
+      }
+    ]
+  }
+}

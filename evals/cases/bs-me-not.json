@@ -1,0 +1,27 @@
+{
+  "artifact": "bs-me-not",
+  "kind": "skill",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "BS me not. Check this factual claim and say how sure you are. No confident guesses"
+      },
+      {
+        "prompt": "BS me not on this QC review. Truth and accuracy over helpfulness, and flag anything unverified"
+      },
+      {
+        "prompt": "Do not invent a source. If you are not certain, say so before you answer the factual claim"
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "owner": "html-email-report"
+      },
+      {
+        "prompt": "Make this mobile UI better, using real product screens",
+        "owner": "ui-design"
+      }
+    ]
+  }
+}

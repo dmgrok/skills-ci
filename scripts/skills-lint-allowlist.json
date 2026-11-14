@@ -1,0 +1,13 @@
+{
+  "validator": "skill-validator v1.8.0",
+  "note": "Known findings from a strict check of skills/. Remove an entry only after the validator stops reporting it. A new finding fails CI until it is fixed or added here on purpose.",
+  "findings": [
+    {
+      "skill": "ui-design",
+      "level": "warning",
+      "category": "Frontmatter",
+      "file": "SKILL.md",
+      "message": "description has # comma-separated segments, most very short \u2014 this looks like a keyword list; per the spec, the description should concisely describe what the skill does and when to use it"
+    }
+  ]
+}

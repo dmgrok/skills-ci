@@ -1,0 +1,44 @@
+[
+  {
+    "name": "missing-frontmatter",
+    "lint_must_fail": true,
+    "evals_must_fail": true,
+    "lint_contains": ["name is required", "description is required"],
+    "evals_contains": ["Missing or malformed YAML frontmatter"]
+  },
+  {
+    "name": "missing-name",
+    "lint_must_fail": true,
+    "evals_must_fail": true,
+    "lint_contains": ["name is required"],
+    "evals_contains": ["Frontmatter missing required field: 'name'"]
+  },
+  {
+    "name": "description-too-long",
+    "lint_must_fail": true,
+    "evals_must_fail": true,
+    "lint_contains": ["description exceeds 1024 characters"],
+    "evals_contains": ["exceeds the 1024-char limit"]
+  },
+  {
+    "name": "broken-link",
+    "lint_must_fail": true,
+    "evals_must_fail": false,
+    "lint_contains": ["(HTTP 404)"],
+    "evals_contains": ["PASSED"]
+  },
+  {
+    "name": "missing-referenced-file",
+    "lint_must_fail": true,
+    "evals_must_fail": false,
+    "lint_contains": ["broken internal link: notes/missing.md (file not found)"],
+    "evals_contains": ["PASSED"]
+  },
+  {
+    "name": "good-skill",
+    "lint_must_fail": false,
+    "evals_must_fail": false,
+    "lint_contains": ["Result: passed"],
+    "evals_contains": ["PASSED"]
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "artifact": "ui-design",
+  "kind": "skill",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Make this mobile UI better, using real product screens"
+      },
+      {
+        "prompt": "Redesign the web interface: responsive layout and the design system"
+      },
+      {
+        "prompt": "Critique this iOS screen and polish the frontend"
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Deliver this written report as an HTML email that renders in Gmail, with tables and a plain-text alternative",
+        "owner": "html-email-report"
+      },
+      {
+        "prompt": "Edit this draft. Cut the AI tells and add a human voice",
+        "owner": "unslop"
+      }
+    ]
+  }
+}

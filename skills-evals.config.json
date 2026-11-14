@@ -1,0 +1,5 @@
+{
+  "casesDir": "evals/cases",
+  "minEvals": 0,
+  "exclude": ["tests/fixtures/**"]
+}
