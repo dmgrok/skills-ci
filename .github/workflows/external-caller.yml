@@ -1,0 +1,14 @@
+name: External caller
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    uses: dmgrok/skills-ci/.github/workflows/skills-ci.yml@d5fe5f2034d9b6c4ea99069c572826d512c7389e
+    with:
+      skills-dir: skills
+      allowlist: scripts/skills-lint-allowlist.json
