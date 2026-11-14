@@ -1,6 +1,6 @@
 # Semgrep CE 1.185.0 and the transitive dependencies resolved for
-# CPython 3.14 on manylinux x86_64. That is the interpreter ubuntu-latest
-# used on 2026-11-14: the Skill CI log downloaded cp314 wheels.
+# CPython 3.14 on manylinux x86_64. CI installs that interpreter with
+# actions/setup-python before scripts/install_semgrep.sh runs.
 # Generated from those wheels plus every other PyPI file for the same
 # version that this platform can install. Install with
 # pip install --require-hashes --only-binary=:all: -r requirements-semgrep.txt

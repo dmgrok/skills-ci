@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Install Semgrep CE 1.185.0 and its transitive dependencies from
 # requirements-semgrep.txt. Every distribution is hash-pinned for
-# CPython 3.14 on manylinux x86_64, which is what ubuntu-latest used
-# when this lock was made. pip install --require-hashes checks them.
+# CPython 3.14 on manylinux x86_64. CI puts that interpreter first on
+# PATH with actions/setup-python before this script runs. This script
+# uses that python3, and refuses any other version.
 set -euo pipefail
 
 if [ "$(uname -m)" != "x86_64" ]; then
@@ -10,9 +11,11 @@ if [ "$(uname -m)" != "x86_64" ]; then
   exit 1
 fi
 
-python_version=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+python3_bin=$(command -v python3)
+echo "using ${python3_bin}"
+python_version=$("$python3_bin" -c 'import sys; print("%d.%d" % sys.version_info[:2])')
 if [ "$python_version" != "3.14" ]; then
-  echo "requirements-semgrep.txt is pinned for CPython 3.14; found $python_version" >&2
+  echo "requirements-semgrep.txt is pinned for CPython 3.14; found $python_version at $python3_bin" >&2
   exit 1
 fi
 
@@ -25,7 +28,7 @@ fi
 
 venv="${HOME}/.local/semgrep-venv"
 rm -rf "$venv"
-python3 -m venv "$venv"
+"$python3_bin" -m venv "$venv"
 "$venv/bin/python" -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r "$requirements"
 install_dir="${HOME}/.local/bin"
 mkdir -p "$install_dir"

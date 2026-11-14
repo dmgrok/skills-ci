@@ -65,6 +65,11 @@ jobs:
           echo "$install_dir" >> "$GITHUB_PATH"
           "${install_dir}/skill-validator" --version
 
+      - name: Set up Python 3.14
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
       - name: Install Semgrep 1.185.0
         run: bash scripts/install_semgrep.sh
 

@@ -119,7 +119,7 @@ Semgrep CE 1.185.0 then runs `security/semgrep/injection.yml`. Those rules are i
 
 Semgrep's built-in ignore list skips a directory named `tests`, which would hide `tests/fixtures/`. This repository's `.semgrepignore` replaces that default and does not skip the fixtures. Callers do not receive the file. A caller scan uses the caller's ignore rules, or Semgrep's default, which still scans a `skills/` directory.
 
-`scripts/install_semgrep.sh` installs from `requirements-semgrep.txt` with `pip install --require-hashes --only-binary=:all:`. That file pins Semgrep 1.185.0 and every transitive dependency. The pins are for CPython 3.14 on manylinux x86_64, which is the interpreter ubuntu-latest used on 14 November 2026 (the Skill CI log downloaded `cp314` wheels). The Semgrep wheel hash in that file is `0eb6aaadad5b957af96d1300487e10af1dc8016e8ef53072effb48cd4906c02b`, checked by downloading the wheel. The installer refuses any other architecture or Python version, because those wheels are not in the lock file.
+`scripts/install_semgrep.sh` installs from `requirements-semgrep.txt` with `pip install --require-hashes --only-binary=:all:`. That file pins Semgrep 1.185.0 and every transitive dependency for CPython 3.14 on manylinux x86_64. Every job that runs the script first runs `actions/setup-python` at commit `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` (v7.1.0) with `python-version: '3.14'`. The script uses the `python3` that step puts on `PATH`, prints that path, and refuses any other version. The Semgrep wheel hash in the lock file is `0eb6aaadad5b957af96d1300487e10af1dc8016e8ef53072effb48cd4906c02b`, checked by downloading the wheel. The installer also refuses any architecture other than x86_64, because those wheels are not in the lock file.
 
 The `COPYRIGHT` file at tag v1.185.0 says the program may be redistributed and modified "under the terms of the GNU Lesser General Public License (LGPL) version 2.1". It does not say "or any later version", so that grant is LGPL-2.1-only. The PyPI metadata for the 1.185.0 distribution says `LGPL-2.1-or-later`. The file is <https://github.com/semgrep/semgrep/blob/v1.185.0/COPYRIGHT>. The repo `LICENSE` at the same tag is the LGPL 2.1 text.
 
@@ -236,6 +236,7 @@ Read from each project's own `LICENSE` file, or from the package metadata of the
 | skill-validator | 1.8.0 | MIT | <https://github.com/agent-ecosystem/skill-validator> | yes |
 | skills-evals (CLI and GitHub Action) | 0.2.0, commit `ef618aabbbd4c03cd7ccc44916f91f320eb389ea` | MIT | <https://github.com/ahnafyy/skills-evals> | yes |
 | actions/checkout | 4.4.0, commit `11d5960a326750d5838078e36cf38b85af677262` | MIT | <https://github.com/actions/checkout> | yes |
+| actions/setup-python | 7.1.0, commit `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | MIT | <https://github.com/actions/setup-python/blob/v7.1.0/LICENSE> | yes |
 | pytest | 8.4.2 | MIT | <https://github.com/pytest-dev/pytest> | yes |
 | pluggy | 1.7.0 | MIT | <https://github.com/pytest-dev/pluggy> | yes |
 | iniconfig | 2.3.1 | MIT | <https://github.com/pytest-dev/iniconfig> | yes |

@@ -134,6 +134,11 @@ jobs:
           ref: ${{ job.workflow_sha }}
           path: .skills-ci
 
+      - name: Set up Python 3.14
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
       - name: Install Semgrep 1.185.0
         run: bash "$GITHUB_WORKSPACE/.skills-ci/scripts/install_semgrep.sh"
 
@@ -189,6 +194,11 @@ jobs:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
           path: .skills-ci
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
 
       - name: Install Semgrep 1.185.0
         run: bash "$GITHUB_WORKSPACE/.skills-ci/scripts/install_semgrep.sh"
