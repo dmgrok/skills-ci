@@ -2,7 +2,7 @@
 
 A small, reusable CI pipeline for [Agent Skills](https://agentskills.io): folders whose instructions live in `SKILL.md`.
 
-Two checks run on every pull request and every push to `main`. Neither check calls a model or reads a secret. A third workflow runs weekly and does nothing unless you later add a repository secret and behavioural cases.
+Three checks run on every pull request and every push to `main`: lint, trigger evals, and tests. None of them calls a model or reads a secret. A fourth workflow runs weekly and does nothing unless you later add a repository secret and behavioural cases.
 
 Skills in this repository live at `skills/<name>/`. There are no tool-specific symlink copies.
 
@@ -17,9 +17,14 @@ pull request, or push to main
         |     fail unless the finding list matches scripts/skills-lint-allowlist.json
         |
         +-- Skill evals
-              skills-evals v0.2.0, tiers 1 and 2 only
-              structure, description checks, and trigger routing
-              compare the result with .skills-evals/baseline.json
+        |     every skill under skills/ must have a positive trigger prompt
+        |     skills-evals v0.2.0, tiers 1 and 2 only
+        |     structure, description checks, and trigger routing
+        |     compare the result with .skills-evals/baseline.json
+        |
+        +-- Skill tests
+              pytest for the lint gate and the HTML email checker
+              negative fixtures must fail with the expected error text
 
 Mondays 06:00 UTC, or a manual run
         |
@@ -32,7 +37,8 @@ Mondays 06:00 UTC, or a manual run
 | Workflow | When | What it does |
 | --- | --- | --- |
 | `.github/workflows/skills-lint.yml` | pull request, push to `main` | `skill-validator` v1.8.0, strict, no model |
-| `.github/workflows/skills-evals.yml` | pull request, push to `main` | `skills-evals` v0.2.0, tiers 1 and 2, no model and no secrets |
+| `.github/workflows/skills-evals.yml` | pull request, push to `main` | `skills-evals` v0.2.0, tiers 1 and 2, no model and no secrets. Fails if a skill has no positive trigger prompt |
+| `.github/workflows/skills-tests.yml` | pull request, push to `main` | pytest, and negative fixtures that must fail with a specific error |
 | `.github/workflows/skills-behavioral.yml` | Mondays 06:00 UTC, and manual dispatch | behavioural tier, only when `ANTHROPIC_API_KEY` is set |
 
 Every workflow sets `permissions: contents: read`. Third-party actions are pinned to commit SHAs.
@@ -57,8 +63,8 @@ Details, local commands, and how to add a case are in [docs/skills-ci.md](docs/s
 
 ## Reuse this pipeline
 
-1. Copy `.github/workflows/skills-lint.yml`, `.github/workflows/skills-evals.yml`, and `.github/workflows/skills-behavioral.yml`.
-2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `skills-evals.config.json`, and `docs/skills-ci.md`.
+1. Copy `.github/workflows/skills-lint.yml`, `.github/workflows/skills-evals.yml`, `.github/workflows/skills-tests.yml`, and `.github/workflows/skills-behavioral.yml`.
+2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
 3. Put each skill at `skills/<name>/SKILL.md`. Keep the workflow permission at `contents: read`.
 4. Keep the pinned action SHAs and the skill-validator checksums. Do not switch them to a floating tag or `latest`.
 5. Add `evals/cases/<name>.json` with three prompts that should route to the skill and two that should route to another skill in the same repo. See the doc for the shape.
