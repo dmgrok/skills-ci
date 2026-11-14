@@ -1,6 +1,7 @@
 ---
 name: good-skill
 description: Use when proving that a well-formed skill passes lint and trigger checks.
+license: MIT
 ---
 
 # Good skill

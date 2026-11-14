@@ -1,0 +1,16 @@
+rules:
+  - id: curl-env-upload
+    languages: [generic]
+    severity: ERROR
+    message: "Exfiltration: curl or wget sends a file or the environment to a URL"
+    pattern-regex: '(?i)\b(?:curl|wget)\b[^\n]*(?:\.env\b|~/?.ssh\b|\bid_rsa\b|\bid_ed25519\b|\bid_ecdsa\b|\bprintenv\b)'
+  - id: requests-env-upload
+    languages: [generic]
+    severity: ERROR
+    message: "Exfiltration: an HTTP client sends environment or secret-file contents"
+    pattern-regex: '(?i)\b(?:requests\.(?:post|put)|urlopen|http\.client|fetch)\b[^\n]*(?:environ|\.env\b|\bid_rsa\b|~/?.ssh\b)'
+  - id: sensitive-path-read
+    languages: [generic]
+    severity: ERROR
+    message: "Sensitive read: .env, a private key, or ~/.ssh"
+    pattern-regex: '(?i)(?:~/?.ssh\b|\bid_rsa\b|\bid_ed25519\b|\bid_ecdsa\b|\bid_dsa\b|BEGIN (?:OPENSSH |RSA |EC |DSA )?PRIVATE KEY|(?:^|[^\w.])\.env\b)'

@@ -1,0 +1,21 @@
+rules:
+  - id: curl-pipe-shell
+    languages: [generic]
+    severity: ERROR
+    message: "Dangerous command: curl output piped to a shell"
+    pattern-regex: '(?i)\b(?:curl|wget)\b[^\n|]*\|\s*(?:ba)?sh\b'
+  - id: shell-eval
+    languages: [generic]
+    severity: ERROR
+    message: "Dangerous command: eval"
+    pattern-regex: '(?i)(?:^|[;&|`(])\s*eval\b|\beval\s*\('
+  - id: rm-rf-root
+    languages: [generic]
+    severity: ERROR
+    message: "Dangerous command: rm -rf of a root, home, or variable path"
+    pattern-regex: '(?i)\brm\s+-[a-zA-Z]*[rf][a-zA-Z]*\s+(?:/|~|\$|\*)'
+  - id: base64-decode-exec
+    languages: [generic]
+    severity: ERROR
+    message: "Dangerous command: base64-decoded output is executed"
+    pattern-regex: '(?i)(?:\b(?:exec|eval)\s*\(\s*base64\.b64decode\s*\(|\bbase64\b[^\n]*(?:-d|--decode)[^\n]*\|\s*(?:ba)?sh\b)'

@@ -1,0 +1,10 @@
+# Replaces Semgrep's built-in ignore list, which skips any directory named
+# tests. The negative fixtures live under tests/fixtures and have to be
+# scanned. Callers of the reusable workflow scan their own skills directory;
+# this file is not copied into their repository.
+.venv/
+.git/
+.semgrep/
+node_modules/
+__pycache__/
+.pytest_cache/
