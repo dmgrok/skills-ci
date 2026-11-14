@@ -1,0 +1,12 @@
+SPDX License List 3.29.0
+
+Attribution: SPDX License List 3.29.0.
+Source: https://github.com/spdx/license-list-data/blob/v3.29.0/json/licenses.json
+sha256: 47d1cc681abe31166b342b6cc4aab13a6ba8ea5c48794697fe3bf8b1dbaf509a
+
+no upstream LICENSE file found
+
+The vendored snapshot is identifiers, names, and the isOsiApproved and
+isDeprecatedLicenseId flags from that file. License texts are not included.
+This data is excepted from the repository's MIT grant.
+A licence for the data itself is not stated here.

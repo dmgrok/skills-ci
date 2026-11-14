@@ -86,7 +86,7 @@ Every tool this CI installs is under an OSI-approved license. The table is in [d
 
 - [skill-validator](https://github.com/agent-ecosystem/skill-validator) v1.8.0. MIT License, copyright 2026 Dachary Carey. The lint job downloads the Linux release archive and checks it against the checksums published with that release.
 - [skills-evals](https://github.com/ahnafyy/skills-evals) v0.2.0, commit `ef618aabbbd4c03cd7ccc44916f91f320eb389ea`. MIT License, copyright 2026 Ahnaf Prio. Docs: <https://ahnafyy.github.io/skills-evals/>.
-- [Semgrep CE](https://github.com/semgrep/semgrep) 1.185.0. The `LICENSE` file at that tag is the GNU LGPL version 2.1. Our rules only. No registry and no Semgrep Pro.
+- [Semgrep CE](https://github.com/semgrep/semgrep) 1.185.0. `COPYRIGHT` at that tag grants LGPL version 2.1 and does not say "or later". PyPI metadata says `LGPL-2.1-or-later`. Our rules only. No registry and no Semgrep Pro.
 - [gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1. MIT License. The release archive is checksum-pinned.
 - [Agent Skills specification](https://github.com/agentskills/agentskills) and <https://agentskills.io>. Code and the specification are Apache License 2.0. Documentation is CC-BY-4.0. See the upstream `LICENSE` and `GOVERNANCE.md`.
 - `ui-design` adapts [Impeccable](https://github.com/pbakaus/impeccable) by Paul Bakaus (Apache-2.0). Its iOS notes also carry the MIT notice for [platform-design-skills](https://github.com/ehmo/platform-design-skills). Both notices are in `skills/ui-design/`.

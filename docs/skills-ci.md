@@ -119,7 +119,9 @@ Semgrep CE 1.185.0 then runs `security/semgrep/injection.yml`. Those rules are i
 
 Semgrep's built-in ignore list skips a directory named `tests`, which would hide `tests/fixtures/`. This repository's `.semgrepignore` replaces that default and does not skip the fixtures. Callers do not receive the file. A caller scan uses the caller's ignore rules, or Semgrep's default, which still scans a `skills/` directory.
 
-`scripts/install_semgrep.sh` downloads the manylinux wheel and checks its sha256 before `pip install`. The wheel's own Python dependencies are installed by pip and are not each checksum-pinned. Linux x86_64 wheel sha256 `0eb6aaadad5b957af96d1300487e10af1dc8016e8ef53072effb48cd4906c02b`. Linux aarch64 wheel sha256 `8cffbaf80abb8e39abc6d7a86588dcf94b7ddc1f40e8e16e555a1116347be3ef`. Both were checked by downloading the wheel.
+`scripts/install_semgrep.sh` installs from `requirements-semgrep.txt` with `pip install --require-hashes --only-binary=:all:`. That file pins Semgrep 1.185.0 and every transitive dependency. The pins are for CPython 3.14 on manylinux x86_64, which is the interpreter ubuntu-latest used on 14 November 2026 (the Skill CI log downloaded `cp314` wheels). The Semgrep wheel hash in that file is `0eb6aaadad5b957af96d1300487e10af1dc8016e8ef53072effb48cd4906c02b`, checked by downloading the wheel. The installer refuses any other architecture or Python version, because those wheels are not in the lock file.
+
+The `COPYRIGHT` file at tag v1.185.0 says the program may be redistributed and modified "under the terms of the GNU Lesser General Public License (LGPL) version 2.1". It does not say "or any later version", so that grant is LGPL-2.1-only. The PyPI metadata for the 1.185.0 distribution says `LGPL-2.1-or-later`. The file is <https://github.com/semgrep/semgrep/blob/v1.185.0/COPYRIGHT>. The repo `LICENSE` at the same tag is the LGPL 2.1 text.
 
 Semgrep's own licensing page describes the registry and the AppSec platform separately from the CE engine. Registry rules maintained by Semgrep are under the Semgrep Rules License v1.0, which is not an OSI license, and the AppSec platform is proprietary. This CI does not use either.
 
@@ -129,9 +131,9 @@ The Agent Skills spec names the frontmatter field `license`. In the spec it is o
 
 This CI is stricter. Every skill must set `license` to one SPDX license identifier from the pinned list. One identifier, not an expression: `MIT OR Apache-2.0` fails. The check is case-sensitive.
 
-The pinned list is SPDX License List 3.29.0, file `json/licenses.json` at tag `v3.29.0` of [spdx/license-list-data](https://github.com/spdx/license-list-data/blob/v3.29.0/json/licenses.json). Its sha256 is `47d1cc681abe31166b342b6cc4aab13a6ba8ea5c48794697fe3bf8b1dbaf509a`. `security/spdx-licenses.json` vendors the identifier, the name, `isOsiApproved`, and `isDeprecatedLicenseId` from that file. It does not vendor license texts.
+The pinned list is SPDX License List 3.29.0, file `json/licenses.json` at tag `v3.29.0` of [spdx/license-list-data](https://github.com/spdx/license-list-data/blob/v3.29.0/json/licenses.json). Its sha256 is `47d1cc681abe31166b342b6cc4aab13a6ba8ea5c48794697fe3bf8b1dbaf509a`. `security/spdx-licenses.json` vendors the identifier, the name, `isOsiApproved`, and `isDeprecatedLicenseId` from that file. It does not vendor license texts. `security/SPDX-NOTICE` records the attribution, that hash, that no upstream `LICENSE` file was found, and that this data is excepted from the repository's MIT grant. It does not state a licence for the data.
 
-A declared identifier fails when it is GPL or AGPL (the strong-copyleft families this policy flags, including the deprecated `GPL-3.0` form) or when the SPDX name says non-commercial. `LGPL-2.1-only` is a valid identifier and is not in that strong-copyleft set. `CC-BY-4.0` is a valid identifier and is not non-commercial, so it passes this policy even though it is not OSI-approved. The policy is not "OSI only".
+A declared identifier fails when it is GPL or AGPL (the strong-copyleft families this policy flags, including the deprecated `GPL-3.0` form) or when the SPDX name says non-commercial. `LGPL-2.1-only` is a valid identifier and is not in that strong-copyleft set. `CC-BY-4.0` is a valid identifier and is not non-commercial, so it passes this policy even though it is not OSI-approved. The policy is not "OSI only". `SSPL-1.0` and `BUSL-1.1` are in the pinned list and are not currently rejected: they are not GPL or AGPL, and their SPDX names do not say non-commercial.
 
 Bundled license files are `LICENSE`, `LICENCE`, `COPYING`, `COPYING.LESSER`, `COPYRIGHT`, `UNLICENSE`, and `NOTICE`, with an optional `.txt`, `.md`, `.rst`, or `.html` suffix. A file is a problem when its text names the GNU General Public License or the GNU Affero General Public License, or says non-commercial, or matches none of the permissive phrases the script knows (Apache-2.0, MIT, BSD, ISC, 0BSD, Unlicense). An `SPDX-License-Identifier` header in any text file is checked the same way as the frontmatter field.
 
@@ -149,7 +151,9 @@ gitleaks 8.30.1 scans the skill directory with `gitleaks detect --no-git --redac
 
 Semgrep runs `security/semgrep/dangerous.yml`, the same CE invocation as the injection job. The rules flag `curl` or `wget` piped to `sh` or `bash`, `eval`, `rm -rf` of `/`, `~`, `$...`, or `*`, and base64-decoded bytes that are executed. Bandit was not added. It parses Python only, so it would not see `curl | sh` in a shell script. The Semgrep rules cover both.
 
-A file is binary when it contains a NUL byte or is not valid UTF-8. The check does not follow symlinks. A binary has to be listed in `binaries.allow` in the skill directory, one skill-relative path per line. `#` starts a comment. A listed path that is missing, or that is not binary, also fails. None of the skills in this repository ship a binary, so none of them has that file.
+A file is binary when it contains a NUL byte or is not valid UTF-8. A binary has to be listed in `binaries.allow` in the skill directory, one skill-relative path per line. `#` starts a comment. A listed path that is missing, or that is not binary, also fails. None of the skills in this repository ship a binary, so none of them has that file.
+
+A symlink is scanned only when its resolved target stays inside the skill directory. The check then reads that target through the link. A symlink to a directory inside the skill is allowed and is not followed, because the real directory is already walked. A dangling symlink, a symlink that cannot be resolved, and a symlink whose target is outside the skill fail the check. The outside target is not read.
 
 ### Skill scanners that were not adopted
 
@@ -165,7 +169,7 @@ Dedicated scanners were looked up and not added. A scanner is added only after i
 
 ## Negative fixtures
 
-`tests/fixtures/` sits outside `skills/`. Twelve directories are broken skills, and one is valid. `.github/workflows/skills-tests.yml` runs the strict `skill-validator` check, with the same flags as `scripts/skills-lint.sh`, and `npx --yes skills-evals@0.2.0 run`, on the lint and evals fixtures. Security fixtures run `scripts/skill_security.py` only. `good-skill` runs all three. The job passes only when a broken fixture fails and the output contains the expected text. A non-zero exit with the wrong text fails the job. The valid fixture has to pass.
+`tests/fixtures/` sits outside `skills/`. Twelve directories are broken skills, and `good-skill` and `safe-rm` are valid. `.github/workflows/skills-tests.yml` runs the strict `skill-validator` check, with the same flags as `scripts/skills-lint.sh`, and `npx --yes skills-evals@0.2.0 run`, on the lint and evals fixtures. Security fixtures run `scripts/skill_security.py` only. `good-skill` runs lint, evals, and the security checks. The job passes only when a broken fixture fails and the output contains the expected text. A non-zero exit with the wrong text fails the job. A valid fixture has to pass.
 
 | Fixture | What is wrong | Text the job requires |
 | --- | --- | --- |
@@ -180,7 +184,8 @@ Dedicated scanners were looked up and not added. A scanner is added only after i
 | `injection-exfil` | `curl` of `.env`, and a `~/.ssh` read | `sends file or environment contents to a URL`, `reads .env, a private key, or ~/.ssh`, and the Semgrep exfiltration message |
 | `license-bad` | frontmatter `Not-A-Real-License`, a GPL phrase in `COPYING`, non-commercial `NOTICE`, unrecognized `LICENSE` | `not an SPDX license identifier`, `strong copyleft`, `non-commercial`, `unknown license` |
 | `secret-in-script` | a synthetic `api_key` assignment | `gitleaks generic-api-key` |
-| `dangerous-command` | `curl \| sh`, `eval`, `rm -rf /`, and base64-decoded `exec` | the four `Dangerous command:` Semgrep messages |
+| `dangerous-command` | `curl` or `wget` piped to `sh`, `bash`, `sudo sh`, `sudo bash`, `/bin/sh`, `/bin/bash`, or `zsh`; `eval`; `rm -rf` of `/`, `~`, `$HOME`, `${HOME}`, or `*`; base64-decoded `exec` | the four `Dangerous command:` Semgrep messages |
+| `safe-rm` | `rm -rf /tmp/build` only | the security checks exit 0 |
 | `undeclared-binary` | `payload.bin` contains a NUL and is not in `binaries.allow` | `undeclared binary payload.bin` |
 
 The expected strings are in `tests/fixtures/expectations.json`. `scripts/run_negative_fixtures.py` is the check.
@@ -236,11 +241,11 @@ Read from each project's own `LICENSE` file, or from the package metadata of the
 | iniconfig | 2.3.1 | MIT | <https://github.com/pytest-dev/iniconfig> | yes |
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | <https://github.com/pypa/packaging> | yes, both |
 | Pygments | 2.21.0 | BSD-2-Clause | <https://github.com/pygments/pygments> | yes |
-| Semgrep CE | 1.185.0 | LGPL-2.1 in the repo `LICENSE`; PyPI metadata says `LGPL-2.1-or-later` | <https://github.com/semgrep/semgrep/blob/v1.185.0/LICENSE> | yes |
+| Semgrep CE | 1.185.0 | `COPYRIGHT` at v1.185.0 grants LGPL version 2.1 and does not say "or later" (LGPL-2.1-only). PyPI metadata says `LGPL-2.1-or-later`. The `LICENSE` file is the LGPL 2.1 text | <https://github.com/semgrep/semgrep/blob/v1.185.0/COPYRIGHT> | yes, both identifiers |
 | gitleaks | 8.30.1 | MIT | <https://github.com/gitleaks/gitleaks/blob/v8.30.1/LICENSE> | yes |
-| SPDX License List (identifiers only) | 3.29.0 | no `LICENSE` file at tag `v3.29.0` of `spdx/license-list-data` or `spdx/license-list-XML`. The generated site footer says "All Rights Reserved." A 2012 SPDX Legal Team note puts SPDX document metadata under CC0-1.0; that note is not a `LICENSE` file in the list repository | <https://github.com/spdx/license-list-data/tree/v3.29.0> | not verified |
+| SPDX License List (identifiers only) | 3.29.0 | no `LICENSE` file at tag `v3.29.0` of `spdx/license-list-data` or `spdx/license-list-XML`. The 2018 footer on the spdx.org licences page says "All Rights Reserved." That footer is not a licence for this data. A 2012 SPDX Legal Team note puts SPDX document metadata under CC0-1.0; that note is not a `LICENSE` file in the list repository. See `security/SPDX-NOTICE` | <https://github.com/spdx/license-list-data/tree/v3.29.0> | not verified |
 
-pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. Semgrep CE and gitleaks are the security-check tools. The Semgrep wheel is checksum-pinned; its Python dependencies are not. The SPDX row is the identifier list used by the license check. Semgrep Pro, the Semgrep registry, and the AppSec platform are not installed. Registry rules maintained by Semgrep are under the Semgrep Rules License v1.0, which is not an OSI license, and the AppSec platform is proprietary.
+pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. Semgrep CE and its transitive dependencies are installed from `requirements-semgrep.txt` with `pip --require-hashes`. gitleaks is the other security-check tool. The SPDX row is the identifier list used by the license check. Semgrep Pro, the Semgrep registry, and the AppSec platform are not installed. Registry rules maintained by Semgrep are under the Semgrep Rules License v1.0, which is not an OSI license, and the AppSec platform is proprietary.
 
 ## Reusable workflow
 
@@ -261,12 +266,12 @@ This repository calls the workflow from `.github/workflows/skills-lint.yml` with
 
 Use this when you cannot call a workflow in another repository. The normal path is the one-file caller in the README.
 
-Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and this doc. Point skills at `skills/` or change the path in `scripts/skills-lint.sh` and the workflow comments together.
+Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `requirements-semgrep.txt`, `skills-evals.config.json`, `tests/`, and this doc. Point skills at `skills/` or change the path in `scripts/skills-lint.sh` and the workflow comments together.
 
 The same steps, in order:
 
 1. Copy `.github/workflows/skills-behavioral.yml` if you want the weekly job, and write a workflow that runs the commands below. `.github/workflows/skills-tests.yml` is the fixture and pytest job for this repository; copy it only if you want those tests.
-2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
+2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `requirements-semgrep.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
 3. Put each skill at `skills/<name>/SKILL.md`. Keep the workflow permission at `contents: read`.
 4. Keep the pinned action SHAs and the skill-validator checksums. Do not switch them to a floating tag or `latest`.
 5. Add `evals/cases/<name>.json` with three prompts that should route to the skill and two that should route to another skill in the same repo. See [Add eval cases](#add-eval-cases) for the shape.

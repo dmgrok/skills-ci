@@ -1,36 +1,32 @@
 #!/usr/bin/env bash
-# Install Semgrep CE 1.185.0 from the manylinux wheel and check its sha256.
-# The wheel is the open-source engine. pip then installs that wheel's
-# dependencies from PyPI; those dependencies are not each checksum-pinned.
+# Install Semgrep CE 1.185.0 and its transitive dependencies from
+# requirements-semgrep.txt. Every distribution is hash-pinned for
+# CPython 3.14 on manylinux x86_64, which is what ubuntu-latest used
+# when this lock was made. pip install --require-hashes checks them.
 set -euo pipefail
 
-version=1.185.0
-case "$(uname -m)" in
-  x86_64)
-    wheel="semgrep-${version}-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_x86_64.whl"
-    sum=0eb6aaadad5b957af96d1300487e10af1dc8016e8ef53072effb48cd4906c02b
-    url="https://files.pythonhosted.org/packages/f2/13/0d4dc8d124794105f300082c46e3d8ad45eac7af63113b57a5966629b5a3/${wheel}"
-    ;;
-  aarch64|arm64)
-    wheel="semgrep-${version}-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_aarch64.whl"
-    sum=8cffbaf80abb8e39abc6d7a86588dcf94b7ddc1f40e8e16e555a1116347be3ef
-    url="https://files.pythonhosted.org/packages/ba/4e/cae05468e1b8c33a18bafb25539f845d6f35e6e58973ebdd2aafa6b387ed/${wheel}"
-    ;;
-  *)
-    echo "unsupported architecture: $(uname -m)" >&2
-    exit 1
-    ;;
-esac
+if [ "$(uname -m)" != "x86_64" ]; then
+  echo "requirements-semgrep.txt is pinned for x86_64; found $(uname -m)" >&2
+  exit 1
+fi
 
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
-curl -fsSL -o "$tmp/$wheel" "$url"
-echo "${sum}  $tmp/$wheel" | sha256sum -c -
+python_version=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+if [ "$python_version" != "3.14" ]; then
+  echo "requirements-semgrep.txt is pinned for CPython 3.14; found $python_version" >&2
+  exit 1
+fi
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+requirements="$script_dir/../requirements-semgrep.txt"
+if [ ! -f "$requirements" ]; then
+  echo "missing $requirements" >&2
+  exit 1
+fi
 
 venv="${HOME}/.local/semgrep-venv"
 rm -rf "$venv"
 python3 -m venv "$venv"
-"$venv/bin/pip" install --disable-pip-version-check "$tmp/$wheel"
+"$venv/bin/python" -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r "$requirements"
 install_dir="${HOME}/.local/bin"
 mkdir -p "$install_dir"
 ln -sfn "$venv/bin/semgrep" "$install_dir/semgrep"

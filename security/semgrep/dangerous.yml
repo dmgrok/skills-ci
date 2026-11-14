@@ -3,7 +3,7 @@ rules:
     languages: [generic]
     severity: ERROR
     message: "Dangerous command: curl output piped to a shell"
-    pattern-regex: '(?i)\b(?:curl|wget)\b[^\n|]*\|\s*(?:ba)?sh\b'
+    pattern-regex: '(?i)\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:/bin/)?(?:bash|zsh|sh)\b'
   - id: shell-eval
     languages: [generic]
     severity: ERROR
@@ -13,7 +13,7 @@ rules:
     languages: [generic]
     severity: ERROR
     message: "Dangerous command: rm -rf of a root, home, or variable path"
-    pattern-regex: '(?i)\brm\s+-[a-zA-Z]*[rf][a-zA-Z]*\s+(?:/|~|\$|\*)'
+    pattern-regex: '(?i)\brm\s+-[a-zA-Z]*[rf][a-zA-Z]*\s+(?:/+(?:[\s;|&]|$)|~[^\s;|&]*|\$\{[A-Za-z_][A-Za-z0-9_]*\}[^\s;|&]*|\$[A-Za-z_][A-Za-z0-9_]*[^\s;|&]*|\*[^\s;|&]*)'
   - id: base64-decode-exec
     languages: [generic]
     severity: ERROR

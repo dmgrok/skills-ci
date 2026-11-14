@@ -216,18 +216,68 @@ def is_binary_bytes(data):
     return False
 
 
-def iter_files(skill_dir):
-    for path in sorted(skill_dir.rglob("*")):
-        if path.is_symlink() or not path.is_file():
-            continue
-        yield path
-
-
 def relative(path, root):
+    path = Path(path)
+    root = Path(root)
     try:
-        return path.resolve().relative_to(root.resolve()).as_posix()
+        return path.relative_to(root).as_posix()
     except ValueError:
-        return path.as_posix()
+        try:
+            return path.resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            return path.as_posix()
+
+
+def classify_symlink(skill_dir, path):
+    """Return inside, escape, or dangling.
+
+    A symlink is scanned only when its resolved target stays inside the
+    skill directory. A dangling link, a link that cannot be resolved, and
+    a link whose target is outside the skill are failures.
+    """
+    try:
+        if not path.exists():
+            return "dangling"
+        target = path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return "dangling"
+    try:
+        target.relative_to(skill_dir.resolve())
+    except ValueError:
+        return "escape"
+    return "inside"
+
+
+def symlink_findings(skill_dir):
+    found = []
+    for path in sorted(skill_dir.rglob("*")):
+        if not path.is_symlink():
+            continue
+        status = classify_symlink(skill_dir, path)
+        if status == "inside":
+            continue
+        rel = path.relative_to(skill_dir).as_posix()
+        location = "%s/%s" % (skill_dir.name, rel)
+        if status == "dangling":
+            detail = "dangling symlink %s" % rel
+        else:
+            detail = "symlink escapes the skill directory: %s" % rel
+        found.append(finding("symlink", location, detail))
+    return found
+
+
+def iter_files(skill_dir):
+    """Regular files, plus symlinks whose target stays inside the skill."""
+    for path in sorted(skill_dir.rglob("*")):
+        if path.is_symlink():
+            if classify_symlink(skill_dir, path) != "inside":
+                continue
+            if path.is_dir() or not path.is_file():
+                continue
+            yield path
+            continue
+        if path.is_file():
+            yield path
 
 
 def finding(code, location, detail):
@@ -585,6 +635,8 @@ def collect(root, only="all"):
         return [finding("security", str(root), "no SKILL.md found")]
     selected = CHECKS if only == "all" else (only,)
     found = []
+    for skill in skills:
+        found.extend(symlink_findings(skill))
     if "injection" in selected:
         for skill in skills:
             found.extend(text_findings(skill))
