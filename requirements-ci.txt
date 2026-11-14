@@ -1,5 +1,5 @@
 # Pinned for the unit-test job. Versions match the license table in docs/skills-ci.md.
-pytest==8.4.2
+pytest==9.0.3
 pluggy==1.7.0
 iniconfig==2.3.1
 packaging==26.3
