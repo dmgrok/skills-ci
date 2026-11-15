@@ -3,6 +3,7 @@ name: research-brief-writing
 description: >-
   Use when turning research notes, newsletters or a claim ledger into a daily or
   weekly brief that a busy technical leader must understand, trust and act on.
+license: MIT
 ---
 # Research brief writing
 

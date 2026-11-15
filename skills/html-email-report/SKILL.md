@@ -4,6 +4,7 @@ description: >-
   Use when a written report or brief must be delivered as an HTML email that
   renders well in Gmail on desktop and mobile, with figures, tables and a
   plain-text alternative.
+license: MIT
 ---
 # HTML email report
 
