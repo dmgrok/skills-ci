@@ -10,6 +10,7 @@ Canonical skills live in `skills/`. Lint points at that directory. The eval scan
 | `.github/workflows/skills-lint.yml` | every pull request, and every push to `main` | calls `skills-ci.yml` on this repository, with `skills/` and `scripts/skills-lint-allowlist.json` |
 | `.github/workflows/skills-tests.yml` | every pull request, and every push to `main` | pytest for the lint gate and the HTML email checker, plus negative fixtures that must fail with a specific error. Not part of the reusable workflow |
 | `.github/workflows/skills-behavioral.yml` | Mondays at 06:00 UTC, and manual dispatch | behavioural tier, and only when `ANTHROPIC_API_KEY` is set |
+| `.github/workflows/codeql.yml` | every pull request, every push to `main`, and Mondays at 09:17 UTC | CodeQL analysis of Python. No JavaScript or TypeScript. Does not analyse shell scripts |
 
 ```
 pull request, or push to main
@@ -28,6 +29,11 @@ pull request, or push to main
         +-- Skill tests
               pytest for the lint gate and the HTML email checker
               negative fixtures must fail with the expected error text
+        |
+        +-- CodeQL
+              Python only, build-mode none
+              does not analyse shell scripts
+              does not replace Semgrep or gitleaks
 
 Mondays 06:00 UTC, or a manual run
         |
@@ -35,11 +41,16 @@ Mondays 06:00 UTC, or a manual run
               if ANTHROPIC_API_KEY is unset, print a notice and exit 0
               if it is set, run only case files that contain an evals array
               this repository ships neither the secret nor any evals array
+
+Mondays 09:17 UTC
+        |
+        +-- CodeQL
+              the same Python analysis as on a pull request
 ```
 
-Lint and trigger routing in that picture run as the two jobs of the reusable workflow. This repository calls it from `.github/workflows/skills-lint.yml`.
+Lint and trigger routing in that picture run as the two jobs of the reusable workflow. This repository calls it from `.github/workflows/skills-lint.yml`. CodeQL is a separate workflow. Callers of the reusable workflow do not get it.
 
-Every workflow sets `permissions: contents: read`. Third-party actions are pinned to commit SHAs. Nothing in pull-request CI needs a secret.
+The lint, test, and behavioural workflows set `permissions: contents: read`. The CodeQL workflow sets `security-events: write`, `contents: read`, and `actions: read`. Third-party actions are pinned to commit SHAs. Nothing in pull-request CI needs a secret.
 
 The lint job downloads the v1.8.0 Linux release archive and checks its checksum. It runs:
 
@@ -145,22 +156,45 @@ Two ways to serve [Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-I
 
 skills-evals 0.2.0 behavioral adapters only launch the `claude`, `copilot`, or `cursor-agent` CLIs. None of those talks to vLLM or Ollama. Using either option means a later adapter registered with `registerAdapter`, which posts the prompt to the local server and returns the text. That adapter is not in this repository. The weekly workflow is unchanged.
 
+## CodeQL
+
+`.github/workflows/codeql.yml` runs on every pull request, every push to `main`, and every Monday at 09:17 UTC. The job checks out the repository, then runs `github/codeql-action/init` and `github/codeql-action/analyze`. Both steps are pinned to commit `33d7b85da1a04171e211befe2c739303b9a4c066`, which is the commit annotated tag v4.39.3 points at. `src/defaults.json` at that commit sets the default bundle to CodeQL CLI 2.27.4 (`codeql-bundle-v2.27.4`). Python uses `build-mode: none`, so there is no autobuild step.
+
+The language list is `python`. A search of this repository, including `tests/fixtures/` and `skills/`, found no `.js` or `.ts` files, so `javascript-typescript` is not enabled. CodeQL does not analyse shell scripts. The pinned Action's `src/languages/builtin.json` lists `actions`, `cpp`, `csharp`, `go`, `java`, `javascript`, `python`, `ruby`, `rust`, and `swift`. Shell is not in that list. `scripts/skills-lint.sh` and `skills/html-email-report/render_preview.sh` are outside this scan.
+
+CodeQL complements Semgrep and gitleaks. It does not replace them. Semgrep and gitleaks look at skill text for injection patterns, dangerous commands, and secrets. This workflow does not run those checks. It runs the Python queries on the Python in this repository.
+
+The workflow does not read a repository secret. It is not part of the reusable workflow.
+
 ## Licenses of the CI tools
 
-Read from each project's own `LICENSE` file, or from the package metadata of the pinned version, in November 2026. OSI approval is the SPDX `isOsiApproved` flag for that identifier (`MIT`, `Apache-2.0`, and `BSD-2-Clause` are all approved). No tool in this table was replaced. None is outside that set.
+Read from each project's own `LICENSE` file, or from the package metadata of the pinned version, in November 2026. OSI approval is the SPDX `isOsiApproved` flag for that identifier (`MIT`, `Apache-2.0`, and `BSD-2-Clause` are all approved). No tool in this table was replaced. The CodeQL CLI is not an OSI-approved license. The CodeQL Action and the CodeQL libraries and queries are MIT, which is OSI-approved. The wording under the table is what those files say.
 
 | Tool | Version | License | Repository | OSI-approved |
 | --- | --- | --- | --- | --- |
 | skill-validator | 1.8.0 | MIT | <https://github.com/agent-ecosystem/skill-validator> | yes |
 | skills-evals (CLI and GitHub Action) | 0.2.0, commit `ef618aabbbd4c03cd7ccc44916f91f320eb389ea` | MIT | <https://github.com/ahnafyy/skills-evals> | yes |
 | actions/checkout | 4.4.0, commit `11d5960a326750d5838078e36cf38b85af677262` | MIT | <https://github.com/actions/checkout> | yes |
+| github/codeql-action | v4.39.3, commit `33d7b85da1a04171e211befe2c739303b9a4c066` | MIT. The `LICENSE` file begins "MIT License" and "Permission is hereby granted, free of charge" | <https://github.com/github/codeql-action/blob/33d7b85da1a04171e211befe2c739303b9a4c066/LICENSE> | yes |
+| CodeQL libraries and queries | `LICENSE` at commit `2e2b72797673638eaf94772632721d2fa5c42219` of `github/codeql` | MIT. The file begins "MIT License" and "Permission is hereby granted, free of charge". Copyright (c) 2006-2025 GitHub, Inc. | <https://github.com/github/codeql/blob/2e2b72797673638eaf94772632721d2fa5c42219/LICENSE> | yes |
+| CodeQL CLI | 2.27.4, the default bundle of the pinned Action. `LICENSE.md` at tag `v2.27.4`, commit `3899e53b0d39b9dfac529c0061332fa39c2de686` | GitHub CodeQL Terms and Conditions. Not an OSI-approved license | <https://github.com/github/codeql-cli-binaries/blob/v2.27.4/LICENSE.md> | no |
 | pytest | 8.4.2 | MIT | <https://github.com/pytest-dev/pytest> | yes |
 | pluggy | 1.7.0 | MIT | <https://github.com/pytest-dev/pluggy> | yes |
 | iniconfig | 2.3.1 | MIT | <https://github.com/pytest-dev/iniconfig> | yes |
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | <https://github.com/pypa/packaging> | yes, both |
 | Pygments | 2.21.0 | BSD-2-Clause | <https://github.com/pygments/pygments> | yes |
 
-pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. The other three are the tools the lint and eval workflows already pin. The skills-evals npm package has no runtime dependencies.
+pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. skill-validator, skills-evals, and actions/checkout are the tools the lint and eval workflows already pin. The skills-evals npm package has no runtime dependencies. The three CodeQL rows are the Action, the query repository, and the CLI the Action downloads.
+
+### What the CodeQL licence files say
+
+The Action `LICENSE` at commit `33d7b85da1a04171e211befe2c739303b9a4c066` is the MIT License, copyright (c) 2020 GitHub. It says: "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction". <https://github.com/github/codeql-action/blob/33d7b85da1a04171e211befe2c739303b9a4c066/LICENSE>
+
+The query repository `LICENSE` at commit `2e2b72797673638eaf94772632721d2fa5c42219` is the MIT License, copyright (c) 2006-2025 GitHub, Inc. It uses the same grant sentence. The README at that commit says: "The code in this repository is licensed under the MIT License by GitHub." It then says: "The CodeQL CLI (including the CodeQL engine) is hosted in a different repository and is licensed separately. If you'd like to use the CodeQL CLI to analyze closed-source code, you will need a separate commercial license". <https://github.com/github/codeql/blob/2e2b72797673638eaf94772632721d2fa5c42219/LICENSE> and <https://github.com/github/codeql/blob/2e2b72797673638eaf94772632721d2fa5c42219/README.md>
+
+The CLI file is `LICENSE.md` at tag `v2.27.4` (commit `3899e53b0d39b9dfac529c0061332fa39c2de686`). The title is "GitHub CodeQL Terms and Conditions". It says these Terms "are a legal agreement between you (either as an individual or on behalf of an entity) and GitHub, Inc. regarding your use of the GitHub CodeQL software and associated documentation". It defines "OSI-approved License" as "an Open Source Initiative (OSI)-approved open source software license" and "Open Source Codebase" as "a codebase that is released under an OSI-approved License." It says you may use the Software to perform academic research, to demonstrate the Software, and to test CodeQL queries that are released under an OSI-approved License. It says that, only with an Open Source Codebase, you may perform analysis on that codebase, and, if the Open Source Codebase is hosted and maintained on GitHub.com, generate CodeQL databases for or during automated analysis, CI, or CD. It says the Terms do not authorize generating a CodeQL database for automated analysis, CI, or CD in any other context, and do not authorize use "in connection with any codebase that is not an Open Source Codebase (e.g., code in a private repo in GitHub)." It says those two restrictions do not apply "if your use of the Software is under a paid customer license for GitHub Advanced Security". It says: "The Software is licensed, not sold. GitHub reserves all rights not expressly granted in these Terms." <https://github.com/github/codeql-cli-binaries/blob/v2.27.4/LICENSE.md>
+
+The CLI repository README at that same commit has a shorter License section. It says: "By downloading, you agree to the GitHub CodeQL Terms & Conditions." That link is <https://securitylab.github.com/tools/codeql/license/>, which redirects to <https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md>. On 15 November 2026 the default branch is commit `3899e53b0d39b9dfac529c0061332fa39c2de686`, the same commit as tag v2.27.4. The README then says GitHub CodeQL "can only be used on codebases that are released under an OSI-approved open source license, or to perform academic research" and that "It can't be used to generate CodeQL databases for or during automated analysis, continuous integration or continuous delivery". `LICENSE.md` also allows generating those databases during automated analysis, CI, or CD when the codebase is an Open Source Codebase hosted and maintained on GitHub.com. <https://github.com/github/codeql-cli-binaries/blob/v2.27.4/README.md>
 
 ## Reusable workflow
 
