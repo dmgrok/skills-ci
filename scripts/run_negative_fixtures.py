@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Run skill lint and skills-evals on tests/fixtures and check the error text.
+"""Run skill lint, skills-evals, and the security checks on tests/fixtures.
 
 The job passes only when each broken fixture fails, the output contains the
-expected error text, and the good fixture passes both tools. A non-zero exit
-without that text is a failure of this job, and so is a zero exit that still
-prints the error text.
+expected text, and the good fixture passes. A fixture lists the tools it
+runs. Security fixtures run scripts/skill_security.py and skip lint and
+evals. A non-zero exit without the expected text is a failure of this job,
+and so is a zero exit that still prints that text.
 """
 
 import json
@@ -57,33 +58,42 @@ def run_command(argv, cwd):
     return proc.returncode, proc.stdout
 
 
-def tool_commands():
-    validator = shutil.which("skill-validator")
-    if not validator:
-        raise SystemExit("skill-validator is not on PATH")
-    npx = shutil.which("npx")
-    if not npx:
-        raise SystemExit("npx is not on PATH")
-    return {
-        "lint": [validator, *VALIDATOR_ARGS],
-        "evals": [npx, "--yes", "skills-evals@0.2.0", "run", "--root"],
-    }
+def tools_for(spec):
+    return spec.get("tools") or ["lint", "evals"]
 
 
-def run_fixture(fixture_dir, commands):
-    lint_status, lint_out = run_command([*commands["lint"], str(fixture_dir)], ROOT)
-    evals_status, evals_out = run_command([*commands["evals"], str(fixture_dir)], ROOT)
-    return {
-        "lint": (lint_status, lint_out),
-        "evals": (evals_status, evals_out),
-    }
+def tool_commands(specs):
+    needed = set()
+    for spec in specs:
+        needed.update(tools_for(spec))
+    commands = {}
+    if "lint" in needed:
+        validator = shutil.which("skill-validator")
+        if not validator:
+            raise SystemExit("skill-validator is not on PATH")
+        commands["lint"] = [validator, *VALIDATOR_ARGS]
+    if "evals" in needed:
+        npx = shutil.which("npx")
+        if not npx:
+            raise SystemExit("npx is not on PATH")
+        commands["evals"] = [npx, "--yes", "skills-evals@0.2.0", "run", "--root"]
+    if "security" in needed:
+        commands["security"] = [sys.executable, str(ROOT / "scripts" / "skill_security.py")]
+    return commands
+
+
+def run_fixture(fixture_dir, commands, spec):
+    results = {}
+    for tool in tools_for(spec):
+        results[tool] = run_command([*commands[tool], str(fixture_dir)], ROOT)
+    return results
 
 
 def judge_fixture(name, spec, results):
     lines = []
     ok = True
     details = []
-    for tool in ("lint", "evals"):
+    for tool in tools_for(spec):
         status, output = results[tool]
         must_fail = spec[f"{tool}_must_fail"]
         needles = spec.get(f"{tool}_contains", [])
@@ -134,12 +144,12 @@ def main(argv):
         print("expected: " + ", ".join(expected_names))
         return 1
 
-    commands = tool_commands()
+    commands = tool_commands(specs)
     rows = []
     failed = False
     for spec in specs:
         name = spec["name"]
-        results = run_fixture(FIXTURES / name, commands)
+        results = run_fixture(FIXTURES / name, commands, spec)
         ok, lines, details = judge_fixture(name, spec, results)
         detail = "; ".join(lines)
         print(f"{name}: {detail}")

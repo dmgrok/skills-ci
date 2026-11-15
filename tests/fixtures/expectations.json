@@ -36,9 +36,74 @@
   },
   {
     "name": "good-skill",
+    "tools": ["lint", "evals", "security"],
     "lint_must_fail": false,
     "evals_must_fail": false,
+    "security_must_fail": false,
     "lint_contains": ["Result: passed"],
-    "evals_contains": ["PASSED"]
+    "evals_contains": ["PASSED"],
+    "security_contains": ["PASS: security checks passed"]
+  },
+  {
+    "name": "injection-hidden-text",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": ["hidden Unicode U+200B", "hidden Unicode U+202E"]
+  },
+  {
+    "name": "injection-override",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": ["instruction override phrase: ignore previous instructions"]
+  },
+  {
+    "name": "injection-exfil",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": [
+      "sends file or environment contents to a URL",
+      "reads .env, a private key, or ~/.ssh",
+      "Exfiltration: curl or wget sends a file or the environment to a URL"
+    ]
+  },
+  {
+    "name": "license-bad",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": [
+      "not an SPDX license identifier",
+      "strong copyleft",
+      "non-commercial",
+      "unknown license"
+    ]
+  },
+  {
+    "name": "safe-rm",
+    "tools": ["security"],
+    "security_must_fail": false,
+    "security_contains": ["PASS: security checks passed"]
+  },
+  {
+    "name": "secret-in-script",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": ["gitleaks generic-api-key"]
+  },
+  {
+    "name": "dangerous-command",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": [
+      "Dangerous command: curl output piped to a shell",
+      "Dangerous command: eval",
+      "Dangerous command: rm -rf of a root, home, or variable path",
+      "Dangerous command: base64-decoded output is executed"
+    ]
+  },
+  {
+    "name": "undeclared-binary",
+    "tools": ["security"],
+    "security_must_fail": true,
+    "security_contains": ["undeclared binary payload.bin"]
   }
 ]

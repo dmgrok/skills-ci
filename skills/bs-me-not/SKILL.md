@@ -3,6 +3,7 @@ name: bs-me-not
 description: >-
   Use for any research, article, post, brief, QC review, technical answer or
   factual claim: truth and accuracy over helpfulness, with no confident guesses.
+license: MIT
 ---
 # BS me not
 
