@@ -63,12 +63,13 @@ On every pull request, and on every push to `main`. No model, and no secrets.
 - **Skill evals.** Structure checks and trigger routing.
 - **Security checks.** Injection, SPDX `license`, and malicious files, on `skills/`.
 - **Skill tests.** In this repository: pytest, and the fixture check in the tables above. Callers do not run that job.
+- **CodeQL.** Python on every pull request, every push to `main`, and weekly. It does not analyse shell scripts, and it does not replace Semgrep or gitleaks.
 
 The optional behavioural tier is off by default. A proposal for running it later with an open-weights model is in [docs/skills-ci.md](docs/skills-ci.md#proposal-run-the-behavioural-tier-on-an-open-model).
 
 ## Open source
 
-Every tool this CI installs is under an OSI-approved license. The table is in [docs/skills-ci.md](docs/skills-ci.md#licenses-of-the-ci-tools).
+The CodeQL CLI is not an OSI-approved license. It is under the GitHub CodeQL Terms and Conditions. The CodeQL Action and the query libraries are MIT. The other tools this CI installs are under OSI-approved licenses. The table is in [docs/skills-ci.md](docs/skills-ci.md#licenses-of-the-ci-tools).
 
 ## Skills included
 
