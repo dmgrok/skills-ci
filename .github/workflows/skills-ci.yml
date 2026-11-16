@@ -15,6 +15,14 @@ on:
         required: false
         type: string
         default: ""
+      skillspector-baseline:
+        description: >-
+          SkillSpector baseline file, relative to the caller repository.
+          Empty means no findings are suppressed. The same file is passed
+          to each skill scan with --baseline.
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -218,3 +226,52 @@ jobs:
           fi
           python3 "$GITHUB_WORKSPACE/.skills-ci/scripts/skill_security.py" \
             --only malicious "$GITHUB_WORKSPACE/$SKILLS_DIR"
+
+  # SkillSpector 2.13.4, commit 54824463814a0be01360792523ec7245a69190fc
+  # (tag v2.13.4). --no-llm only: file contents are not sent to an LLM
+  # provider, and this job has no API key and no secret. SC4 can still
+  # send declared dependency names and versions to api.osv.dev.
+  # There is no severity-threshold flag. The gate reads SARIF
+  # properties.severity and fails on active HIGH or CRITICAL results.
+  # --baseline cannot be combined with --recursive in this version, so
+  # each skill directory is scanned on its own.
+  # security-events: write is not requested. Callers that only grant
+  # contents: read keep working. This repository uploads the SARIF from
+  # the CodeQL workflow, which already has that permission.
+  skillspector:
+    name: SkillSpector
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout caller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Checkout skills-ci scripts
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .skills-ci
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install SkillSpector 2.13.4
+        run: bash "$GITHUB_WORKSPACE/.skills-ci/scripts/install_skillspector.sh"
+
+      - name: Scan skills
+        env:
+          SKILLS_DIR: ${{ inputs.skills-dir }}
+          SKILLSPECTOR_BASELINE: ${{ inputs.skillspector-baseline }}
+        run: |
+          set -euo pipefail
+          if [ ! -d "$SKILLS_DIR" ]; then
+            echo "skills directory not found: $SKILLS_DIR" >&2
+            exit 1
+          fi
+          python3 "$GITHUB_WORKSPACE/.skills-ci/scripts/skillspector_gate.py" \
+            --skills-dir "$SKILLS_DIR" \
+            --workspace "$GITHUB_WORKSPACE" \
+            --sarif "$RUNNER_TEMP/skillspector.sarif"

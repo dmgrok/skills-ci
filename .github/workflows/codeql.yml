@@ -35,3 +35,46 @@ jobs:
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: "/language:python"
+
+  # Same SkillSpector gate as the reusable workflow. This job uploads
+  # SARIF because it already has security-events: write. The reusable
+  # workflow does not request that permission. Category skillspector is
+  # separate from /language:python.
+  skillspector:
+    name: SkillSpector
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install SkillSpector 2.13.4
+        run: bash scripts/install_skillspector.sh
+
+      - name: Scan skills
+        id: scan
+        run: |
+          set +e
+          python3 scripts/skillspector_gate.py \
+            --skills-dir skills \
+            --workspace "$GITHUB_WORKSPACE" \
+            --sarif "$RUNNER_TEMP/skillspector.sarif"
+          code=$?
+          if [ -s "$RUNNER_TEMP/skillspector.sarif" ]; then
+            echo "sarif=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sarif=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$code"
+
+      - name: Upload SkillSpector SARIF
+        if: always() && steps.scan.outputs.sarif == 'true'
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: ${{ runner.temp }}/skillspector.sarif
+          category: skillspector

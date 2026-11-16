@@ -31,7 +31,7 @@ jobs:
   negative:
     name: Negative fixtures
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -80,3 +80,16 @@ jobs:
         env:
           SEMGREP_SEND_METRICS: "off"
         run: python3 scripts/run_negative_fixtures.py
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install SkillSpector 2.13.4
+        run: bash scripts/install_skillspector.sh
+
+      - name: Compare SkillSpector with the current checks
+        env:
+          SEMGREP_SEND_METRICS: "off"
+        run: python3 scripts/skillspector_fixture_report.py
