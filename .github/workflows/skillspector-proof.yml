@@ -1,0 +1,31 @@
+name: SkillSpector fixture proof
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    name: Malicious fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install SkillSpector 2.13.4
+        run: bash scripts/install_skillspector.sh
+
+      - name: Scan fixtures
+        run: |
+          python3 scripts/skillspector_gate.py \
+            --skills-dir tests/fixtures \
+            --workspace "$GITHUB_WORKSPACE" \
+            --sarif "$RUNNER_TEMP/skillspector-fixtures.sarif"
