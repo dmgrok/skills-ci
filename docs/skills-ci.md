@@ -6,11 +6,11 @@ Canonical skills live in `skills/`. Lint points at that directory. The eval scan
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| `.github/workflows/skills-ci.yml` | `workflow_call` from a caller | lint, trigger routing, the trigger-case check, and three security checks. No model and no secrets. Checks out this repository's scripts at the called ref |
+| `.github/workflows/skills-ci.yml` | `workflow_call` from a caller | lint, trigger routing, the trigger-case check, three security checks, and SkillSpector with `--no-llm`. No model and no API key. Checks out this repository's scripts at the called ref |
 | `.github/workflows/skills-lint.yml` | every pull request, and every push to `main` | calls `skills-ci.yml` on this repository, with `skills/` and `scripts/skills-lint-allowlist.json` |
-| `.github/workflows/skills-tests.yml` | every pull request, and every push to `main` | pytest for the lint gate and the HTML email checker, plus negative fixtures that must fail with a specific error. Not part of the reusable workflow |
+| `.github/workflows/skills-tests.yml` | every pull request, and every push to `main` | pytest for the lint gate and the HTML email checker, negative fixtures that must fail with a specific error, and a SkillSpector comparison of those fixtures. Not part of the reusable workflow |
 | `.github/workflows/skills-behavioral.yml` | Mondays at 06:00 UTC, and manual dispatch | behavioural tier, and only when `ANTHROPIC_API_KEY` is set |
-| `.github/workflows/codeql.yml` | every pull request, every push to `main`, and Mondays at 09:17 UTC | CodeQL analysis of Python. No JavaScript or TypeScript. Does not analyse shell scripts |
+| `.github/workflows/codeql.yml` | every pull request, every push to `main`, and Mondays at 09:17 UTC | CodeQL analysis of Python, and the SkillSpector SARIF upload. No JavaScript or TypeScript. Does not analyse shell scripts |
 
 ```
 pull request, or push to main
@@ -30,6 +30,8 @@ pull request, or push to main
         |     injection: hidden Unicode, override phrases, exfiltration, sensitive reads
         |     license: SPDX identifier on every skill, and bundled license files
         |     malicious files: gitleaks, dangerous commands, undeclared binaries
+        |     SkillSpector 2.13.4 with --no-llm
+        |     fail on active HIGH or CRITICAL findings
         |
         +-- Skill tests
               pytest for the lint gate, the security checks, and the HTML email checker
@@ -39,6 +41,7 @@ pull request, or push to main
               Python only, build-mode none
               does not analyse shell scripts
               does not replace Semgrep or gitleaks
+              uploads the SkillSpector SARIF as category skillspector
 
 Mondays 06:00 UTC, or a manual run
         |
@@ -55,7 +58,7 @@ Mondays 09:17 UTC
 
 Lint, trigger routing, and the security checks in that picture run as jobs of the reusable workflow. This repository calls it from `.github/workflows/skills-lint.yml`. CodeQL is a separate workflow. Callers of the reusable workflow do not get it.
 
-The lint, test, and behavioural workflows set `permissions: contents: read`. The CodeQL workflow sets `security-events: write`, `contents: read`, and `actions: read`. Third-party actions are pinned to commit SHAs. Nothing in pull-request CI needs a secret.
+The lint, test, and behavioural workflows set `permissions: contents: read`. The reusable workflow does too, including the SkillSpector job. The CodeQL workflow sets `security-events: write`, `contents: read`, and `actions: read`. That is the workflow that uploads SkillSpector SARIF. A called workflow cannot ask for a permission the caller did not grant, so the reusable workflow does not request `security-events: write`. Third-party actions are pinned to commit SHAs. Nothing in pull-request CI needs a secret. SkillSpector check SC4 can still send package names to `api.osv.dev`. That call uses no API key. The section below says when it happens.
 
 The lint job downloads the v1.8.0 Linux release archive and checks its checksum. It runs:
 
@@ -166,14 +169,29 @@ A file is binary when it contains a NUL byte or is not valid UTF-8. A binary has
 
 A symlink is scanned only when its resolved target stays inside the skill directory. The check then reads that target through the link. A symlink to a directory inside the skill is allowed and is not followed, because the real directory is already walked. A dangling symlink, a symlink that cannot be resolved, and a symlink whose target is outside the skill fail the check. The outside target is not read.
 
+### SkillSpector
+
+`scripts/skillspector_gate.py` runs [SkillSpector](https://github.com/NVIDIA/SkillSpector) 2.13.4, commit `54824463814a0be01360792523ec7245a69190fc`, the commit tag `v2.13.4` points at. `scripts/install_skillspector.sh` installs that commit with `pip` and `requirements-skillspector.txt`. The script requires CPython 3.12, the interpreter those versions were resolved with. The dependency versions are pinned. The wheel hashes are not. The package requires Python `>=3.12,<3.15`. The `LICENSE` file in the installed distribution is Apache-2.0.
+
+The only scan invocation is `skillspector scan <skill> --no-llm --format sarif --output <file>`. A baseline, when the caller sets one, adds `--baseline <file>`. The command does not use `--fail-on-findings` or `--recursive`. `--no-llm` skips the LLM client. The job sets `LANGCHAIN_TRACING_V2=false` and `LANGSMITH_TRACING=false`, and the process environment drops provider credentials, `GITHUB_TOKEN`, and variables whose names end in `_API_KEY`, `_API_TOKEN`, `_TOKEN`, `_SECRET`, or `_PASSWORD`. File contents are not sent to an LLM provider.
+
+Check SC4 is Known Vulnerable Dependency. When a scanned path contains a dependency manifest (`requirements`, `package.json`, `package-lock.json`, `npm-shrinkwrap.json`, `pyproject.toml`, `setup.py`, `pipfile`, `uv.lock`, or `poetry.lock`), the check posts the package name and ecosystem (`PyPI` or `npm`), and the version when the manifest pins one, to `https://api.osv.dev/v1/querybatch`. It may then GET `https://api.osv.dev/v1/vulns/{id}`. There is no API key. File contents are not part of the request. `query_batch` returns without an HTTP call when the package list is empty. `--no-llm` does not disable SC4. If OSV.dev cannot be reached, SkillSpector uses a small built-in fallback list: a fallback match is HIGH, and if that list matches nothing the check emits a LOW finding that OSV.dev was unreachable. A live match uses the advisory severity. A package with no pinned version is reported as LOW. None of the skill directories in this repository contain one of those manifest paths, so a scan of `skills/` does not make that call. The requirements files at the repository root are outside each skill directory. A caller skill that has a manifest does make the call.
+
+v2.13.4 has no severity-threshold flag. `--fail-on-findings` exits 1 when any active finding remains, including LOW and MEDIUM. The default exit code is 1 when the risk score is above 50. One HIGH finding scores 25 and does not, by itself, produce that exit. The gate ignores those exit codes when they are 0 or 1. It fails the job when an active SARIF result has `properties.severity` HIGH or CRITICAL. MEDIUM and LOW stay in the report. A result with a `suppressions` array was accepted by the baseline and does not fail the job. Exit 2, a timeout, or a missing SARIF file fails the job as a tool error. The per-skill timeout is 180 seconds.
+
+`--baseline` and `--recursive` cannot be used together in this version: the CLI exits 2. The gate scans each directory that contains `SKILL.md` on its own, the same discovery as `skill_security.iter_skills`, and passes the same baseline to each scan. The optional input `skillspector-baseline` is a path in the caller repository. The default is empty, which suppresses nothing. This repository does not set it. Glob rules use `id`, `path`, and `message`. `skillspector baseline --no-llm` writes fingerprint entries. Upstream describes the file in `docs/SUPPRESSION.md` at tag `v2.13.4`.
+
+The reusable workflow writes SARIF under the runner temp directory and does not upload it. `.github/workflows/codeql.yml` runs the same gate on `skills/` and uploads with `github/codeql-action/upload-sarif` at commit `33d7b85da1a04171e211befe2c739303b9a4c066`, category `skillspector`. The upload step runs when the SARIF file exists, including when the gate exits 1. The SARIF `properties` include SkillSpector's `code_snippet` text, so matched excerpts are stored by GitHub code scanning. Result URIs are rewritten to be relative to the repository root before upload. Callers of the reusable workflow get the failing gate with no new required input and no new secret. They do not get the code-scanning upload unless their own workflow already has `security-events: write` and uploads the report.
+
+`.github/workflows/skills-tests.yml` runs the gate on `tests/fixtures/` and on `skills/`, and prints a comparison with `scripts/skill_security.py`. That comparison is not part of the fixture contract in `tests/fixtures/expectations.json`. `good-skill` and `skills/` have to finish with no active HIGH or CRITICAL finding. A malicious fixture that SkillSpector flags does not, by itself, fail that step.
+
 ### Skill scanners that were not adopted
 
-Dedicated scanners were looked up and not added. A scanner is added only after its `LICENSE` file at a pinned version is an OSI license, the project is maintained, and a scan of these skills works without an API key. None of them cleared that bar.
+Dedicated scanners were looked up and not added, except SkillSpector, which is the section above. A scanner is added only after its `LICENSE` file at a pinned version is an OSI license, the project is maintained, and a scan of these skills works without an API key.
 
 | Project | What was verified | Why it was not adopted |
 | --- | --- | --- |
 | [cisco-ai-defense/skill-scanner](https://github.com/cisco-ai-defense/skill-scanner) 2.3.2 | `LICENSE` at tag `2.3.2` is Apache-2.0. The project published that release. | The recommended scan uses an LLM API key. The dependency range includes `litellm`, and the 2.3.1 notes say `litellm` 1.107.0 was a credential-stealing release. This CI does not install that tree and does not use an API key. The scanner was not run. |
-| [NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector) v2.13.4 | `LICENSE` at tag `v2.13.4` is Apache-2.0. The release is dated 2026-11-04. | The README at that tag says the default sends file contents to an LLM provider. `--no-llm` still sends dependency names to `api.osv.dev`. This pull-request CI does not call a model or that service. A scan was not run, so it was not shown to work here. |
 | [snyk/agent-scan](https://github.com/snyk/agent-scan) | `LICENSE` on the default branch is Apache-2.0, copyright 2025 Invariant Labs AG. | No release was pinned and the scanner was not run. |
 | [famclaw/honeybadger](https://github.com/famclaw/honeybadger) | The repository is small and its README says it shells out to gitleaks. | Not pinned and not run. This CI already pins gitleaks itself. |
 | [skilltrust/skill-detector](https://github.com/skilltrust/skill-detector) | The README describes an early v0.x CLI. | Not pinned and not run. |
@@ -268,9 +286,10 @@ Read from each project's own `LICENSE` file, or from the package metadata of the
 | Pygments | 2.21.0 | BSD-2-Clause | <https://github.com/pygments/pygments> | yes |
 | Semgrep CE | 1.185.0 | `COPYRIGHT` at v1.185.0 grants LGPL version 2.1 and does not say "or later" (LGPL-2.1-only). PyPI metadata says `LGPL-2.1-or-later`. The `LICENSE` file is the LGPL 2.1 text | <https://github.com/semgrep/semgrep/blob/v1.185.0/COPYRIGHT> | yes, both identifiers |
 | gitleaks | 8.30.1 | MIT | <https://github.com/gitleaks/gitleaks/blob/v8.30.1/LICENSE> | yes |
+| SkillSpector | 2.13.4, commit `54824463814a0be01360792523ec7245a69190fc` (tag `v2.13.4`) | Apache-2.0. The `LICENSE` file in the installed distribution is the Apache License 2.0 | <https://github.com/NVIDIA/SkillSpector/blob/54824463814a0be01360792523ec7245a69190fc/LICENSE> | yes |
 | SPDX License List (identifiers only) | 3.29.0 | no `LICENSE` file at tag `v3.29.0` of `spdx/license-list-data` or `spdx/license-list-XML`. The 2018 footer on the spdx.org licences page says "All Rights Reserved." That footer is not a licence for this data. A 2012 SPDX Legal Team note puts SPDX document metadata under CC0-1.0; that note is not a `LICENSE` file in the list repository. See `security/SPDX-NOTICE` | <https://github.com/spdx/license-list-data/tree/v3.29.0> | not verified |
 
-pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. Semgrep CE and its transitive dependencies are installed from `requirements-semgrep.txt` with `pip --require-hashes`. gitleaks is the other security-check tool. The SPDX row is the identifier list used by the license check. Semgrep Pro, the Semgrep registry, and the AppSec platform are not installed. Registry rules maintained by Semgrep are under the Semgrep Rules License v1.0, which is not an OSI license, and the AppSec platform is proprietary. skill-validator, skills-evals, actions/checkout, and actions/setup-python are the other pinned tools. The skills-evals npm package has no runtime dependencies. The three CodeQL rows are the Action, the query repository, and the CLI the Action downloads.
+pytest, pluggy, iniconfig, packaging, and Pygments are the packages installed from `requirements-ci.txt` for the unit-test job. Semgrep CE and its transitive dependencies are installed from `requirements-semgrep.txt` with `pip --require-hashes`. SkillSpector's transitive dependencies are version-pinned in `requirements-skillspector.txt` and are not each listed in this table. gitleaks is the other security-check tool. The SPDX row is the identifier list used by the license check. Semgrep Pro, the Semgrep registry, and the AppSec platform are not installed. Registry rules maintained by Semgrep are under the Semgrep Rules License v1.0, which is not an OSI license, and the AppSec platform is proprietary. skill-validator, skills-evals, actions/checkout, and actions/setup-python are the other pinned tools. The skills-evals npm package has no runtime dependencies. The three CodeQL rows are the Action, the query repository, and the CLI the Action downloads.
 
 ### What the CodeQL licence files say
 
@@ -290,8 +309,9 @@ Inputs:
 
 - `skills-dir`, default `skills`. A directory of skill folders, relative to the caller root.
 - `allowlist`, default empty. A JSON allowlist relative to the caller root. Empty means any skill-validator finding fails. This repository passes `scripts/skills-lint-allowlist.json` because `ui-design` has one accepted warning.
+- `skillspector-baseline`, default empty. A SkillSpector baseline file relative to the caller root. Empty suppresses nothing. This repository does not set it.
 
-The called jobs are Lint, Trigger routing, Injection, Licenses, and Malicious files. Permissions stay `contents: read`. Actions, the skill-validator archive, the Semgrep wheel, and the gitleaks archive stay pinned. The jobs do not read a secret and do not call a model. Negative fixtures and pytest stay in `.github/workflows/skills-tests.yml` and are not part of the reusable workflow.
+The called jobs are Lint, Trigger routing, Injection, Licenses, Malicious files, and SkillSpector. Permissions stay `contents: read`. Actions, the skill-validator archive, the Semgrep wheel, the gitleaks archive, and the SkillSpector commit stay pinned. The jobs do not read a secret and do not call a model. SkillSpector check SC4 can send dependency coordinates to OSV.dev, as described above. Negative fixtures and pytest stay in `.github/workflows/skills-tests.yml` and are not part of the reusable workflow.
 
 If `evals/cases/` is missing, the trigger-case check prints a notice and continues. If that directory exists, every skill under `skills-dir` needs at least one positive trigger prompt.
 
@@ -301,12 +321,12 @@ This repository calls the workflow from `.github/workflows/skills-lint.yml` with
 
 Use this when you cannot call a workflow in another repository. The normal path is the one-file caller in the README.
 
-Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `requirements-semgrep.txt`, `skills-evals.config.json`, `tests/`, and this doc. Point skills at `skills/` or change the path in `scripts/skills-lint.sh` and the workflow comments together.
+Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/skillspector_gate.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `scripts/install_skillspector.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `requirements-semgrep.txt`, `requirements-skillspector.txt`, `skills-evals.config.json`, `tests/`, and this doc. Point skills at `skills/` or change the path in `scripts/skills-lint.sh` and the workflow comments together.
 
 The same steps, in order:
 
 1. Copy `.github/workflows/skills-behavioral.yml` if you want the weekly job, and write a workflow that runs the commands below. `.github/workflows/skills-tests.yml` is the fixture and pytest job for this repository; copy it only if you want those tests.
-2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `requirements-semgrep.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
+2. Copy `scripts/skills-lint.sh`, `scripts/skills_lint_gate.py`, `scripts/skills-lint-allowlist.json`, `scripts/require_trigger_cases.py`, `scripts/run_negative_fixtures.py`, `scripts/skill_security.py`, `scripts/skillspector_gate.py`, `scripts/install_semgrep.sh`, `scripts/install_gitleaks.sh`, `scripts/install_skillspector.sh`, `security/`, `.semgrepignore`, `requirements-ci.txt`, `requirements-semgrep.txt`, `requirements-skillspector.txt`, `skills-evals.config.json`, `tests/`, and `docs/skills-ci.md`.
 3. Put each skill at `skills/<name>/SKILL.md`. Keep the workflow permission at `contents: read`.
 4. Keep the pinned action SHAs and the skill-validator checksums. Do not switch them to a floating tag or `latest`.
 5. Add `evals/cases/<name>.json` with three prompts that should route to the skill and two that should route to another skill in the same repo. See [Add eval cases](#add-eval-cases) for the shape.
